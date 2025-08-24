@@ -1,0 +1,20 @@
+version: '3.9'
+services:
+  api:
+    build: ./backend
+    environment:
+      - ASPNETCORE_ENVIRONMENT=Development
+      - JWT_SECRET=change-me
+      - AOAI_ENDPOINT=https://oai-droid-sweden.openai.azure.com/
+      - AOAI_API_KEY=YOUR_KEY_HERE
+      - AOAI_DEPLOYMENT=gpt-4o
+    volumes:
+      - ./data:/app/data
+    ports:
+      - "5087:8080"
+  web:
+    build: ./frontend
+    depends_on:
+      - api
+    ports:
+      - "5173:80"

@@ -1,0 +1,62 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "BiteTrack API",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "build",
+      "program": "c:/code/bitetrack/backend/src/BiteTrack.Api/bin/Debug/net8.0/BiteTrack.Api.dll",
+      "cwd": "c:/code/bitetrack/backend/src/BiteTrack.Api",
+      "env": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "ASPNETCORE_URLS": "http://localhost:5087",
+        "JWT_SECRET": "LocalDevSecret_ChangeMe_1234567890_LocalDevSecret",
+        "AOAI_ENDPOINT": "https://oai-droid-sweden.openai.azure.com/",
+        "AOAI_DEPLOYMENT": "gpt-4o",
+        "AOAI_API_KEY": "REPLACE_WITH_KEY_FOR_LOCAL_DEV"
+      },
+      "console": "integratedTerminal"
+    },
+    {
+      "name": "BiteTrack API (watch attach)",
+      "type": "coreclr",
+      "request": "attach",
+      "processName": "BiteTrack.Api",
+      "justMyCode": true
+    },
+    {
+      "name": "Frontend Vite Dev Server",
+      "type": "node",
+      "request": "launch",
+      "cwd": "${workspaceFolder}/frontend",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": ["run", "dev"],
+      "skipFiles": ["<node_internals>/**"],
+      "env": {
+        "BROWSER": "none"
+      }
+    },
+    {
+      "name": "Frontend Chrome Debug",
+      "type": "chrome",
+      "request": "launch",
+      "url": "http://localhost:5173",
+      "webRoot": "${workspaceFolder}/frontend/src"
+    }
+  ],
+  "compounds": [
+    {
+      "name": "BiteTrack Full (API + Frontend)",
+      "configurations": ["BiteTrack API", "Frontend Vite Dev Server"]
+    },
+    {
+      "name": "BiteTrack Full (watch + frontend + chrome)",
+      "preLaunchTask": "watch",
+      "configurations": [
+        "BiteTrack API (watch attach)",
+        "Frontend Chrome Debug"
+      ]
+    }
+  ]
+}
