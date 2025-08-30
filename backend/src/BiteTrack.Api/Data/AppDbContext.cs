@@ -1,7 +1,7 @@
-using BiteTrack.Domain;
+using BiteTrack.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 
-namespace BiteTrack.Data;
+namespace BiteTrack.Api.Data;
 
 public class AppDbContext : DbContext
 {

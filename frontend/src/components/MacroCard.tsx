@@ -87,9 +87,9 @@ export function MacroCardGroup({ calories, protein, carbs, fat, caloriesGoal, pr
   return (
     <div className="grid grid-cols-4 gap-2">
       <MacroCard label="kcal" value={calories} goal={caloriesGoal} />
-      <MacroCard label="P" value={protein} goal={proteinGoal} unit="g" />
-      <MacroCard label="C" value={carbs} goal={carbsGoal} unit="g" />
-      <MacroCard label="F" value={fat} goal={fatGoal} unit="g" />
+      <MacroCard label="Protein" value={protein} goal={proteinGoal} unit="g" />
+      <MacroCard label="Carbs" value={carbs} goal={carbsGoal} unit="g" />
+      <MacroCard label="Fat" value={fat} goal={fatGoal} unit="g" />
     </div>
   );
 }

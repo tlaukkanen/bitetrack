@@ -1,8 +1,7 @@
 using System.Text.Json;
-using Azure;
-using Azure.AI.OpenAI; // retained for future real integration
-using BiteTrack.Data;
-using BiteTrack.Domain;
+using Azure.AI.OpenAI; // placeholder for future integration
+using BiteTrack.Api.Data;
+using BiteTrack.Api.Domain;
 using Microsoft.EntityFrameworkCore;
 using System.Threading.Channels;
 using Microsoft.Extensions.Configuration;
@@ -12,7 +11,7 @@ using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 
-namespace BiteTrack.Processing;
+namespace BiteTrack.Api.Processing;
 
 public record MealAnalysisRequest(Guid MealId);
 
@@ -47,14 +46,11 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 {
     private readonly IConfiguration _config;
     public AzureOpenAiMealAnalyzer(IConfiguration config) { _config = config; }
-
-    // Temporary placeholder implementation until correct Azure OpenAI vision integration is added.
     public Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, CancellationToken ct = default)
     {
-        // Deterministic pseudo values based on file name hash to aid testing
         var name = Path.GetFileNameWithoutExtension(localPhotoPath);
         int hash = name.Aggregate(0, (a, c) => a + c);
-        int calories = 350 + (hash % 200); // 350-549
+        int calories = 350 + (hash % 200);
         float protein = 20 + (hash % 30);
         float carbs = 30 + (hash % 40);
         float fat = 10 + (hash % 20);
@@ -88,12 +84,11 @@ public class LocalPhotoStorage : IPhotoStorage
         var path = Path.Combine(_root, fileName);
         var thumbName = Path.GetFileNameWithoutExtension(fileName) + "_thumb" + Path.GetExtension(fileName);
         var thumbPath = Path.Combine(_root, thumbName);
-        // Attempt to process as image and resize; if fails, fallback to raw copy only original
         try
         {
             data.Position = 0;
             using var image = await Image.LoadAsync(data, ct);
-            image.Metadata.ExifProfile = null; // strip EXIF
+            image.Metadata.ExifProfile = null;
             var maxDim = 512;
             if (image.Width > maxDim || image.Height > maxDim)
             {
@@ -103,8 +98,6 @@ public class LocalPhotoStorage : IPhotoStorage
                 image.Mutate(x => x.Resize(newWidth, newHeight));
             }
             await image.SaveAsync(path, ct);
-
-            // Generate thumbnail from saved main (ensures using processed orientation & stripped metadata)
             using var thumbImage = await Image.LoadAsync(path, ct);
             thumbImage.Metadata.ExifProfile = null;
             var tMax = 160;
@@ -123,7 +116,7 @@ public class LocalPhotoStorage : IPhotoStorage
             data.Position = 0;
             using var fs = File.Create(path);
             await data.CopyToAsync(fs, ct);
-            return (fileName, fileName); // fallback: thumbnail same as original
+            return (fileName, fileName);
         }
     }
     public string ResolvePath(string storedPath) => Path.Combine(_root, storedPath);
@@ -158,7 +151,6 @@ public class MealAnalysisBackgroundService : BackgroundService
                 meal.Fat = result.Fat;
                 meal.RawAiJson = result.RawJson;
                 meal.AiModel = "gpt-4o";
-                // Replace existing items explicitly to avoid potential state confusion causing concurrency errors
                 if (meal.Items.Count > 0)
                 {
                     var existing = meal.Items.ToList();
@@ -182,7 +174,6 @@ public class MealAnalysisBackgroundService : BackgroundService
                     });
                 }
                 meal.UpdatedAtUtc = DateTime.UtcNow;
-                // Debug: log entity states prior to save (development aid)
                 foreach (var entry in db.ChangeTracker.Entries())
                 {
                     _logger.LogDebug("Tracking {Entity} state {State}", entry.Entity.GetType().Name, entry.State);
@@ -205,7 +196,7 @@ public class MealAnalysisBackgroundService : BackgroundService
                         await db.SaveChangesAsync(stoppingToken);
                     }
                 }
-                catch { /* swallow secondary errors */ }
+                catch { }
             }
         }
     }

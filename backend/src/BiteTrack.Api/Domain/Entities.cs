@@ -1,4 +1,4 @@
-namespace BiteTrack.Domain;
+namespace BiteTrack.Api.Domain;
 
 public enum MealStatus
 {
