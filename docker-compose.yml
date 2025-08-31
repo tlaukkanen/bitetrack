@@ -6,10 +6,11 @@ services:
       - ASPNETCORE_ENVIRONMENT=Development
       - JWT_SECRET=change-me-please
       - AOAI_ENDPOINT=https://oai-droid-sweden.openai.azure.com/
-      - AOAI_API_KEY=YOUR_KEY_HERE
-      - AOAI_DEPLOYMENT=gpt-4o
+      - AOAI_API_KEY=${AOAI_API_KEY}
+      - AOAI_DEPLOYMENT=${AOAI_DEPLOYMENT}
       - DB_PATH=/app/data/bitetrack.db
       - PHOTO_STORAGE_ROOT=/app/photos
+      - INVITE_CODE=devinvite
     volumes:
       - ./data:/app/data
       - ./photos:/app/photos

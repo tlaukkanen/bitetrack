@@ -2,6 +2,7 @@ bin/
 obj/
 *.user
 *.db
+*.db-*
 **/photos/
 node_modules/
 dist/

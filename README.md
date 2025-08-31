@@ -24,6 +24,7 @@ Food macro tracking app with .NET 8 Web API backend & React (Vite + TS) frontend
 | `AOAI_ENDPOINT` | Azure OpenAI endpoint URL |
 | `AOAI_API_KEY` | Azure OpenAI key (local dev only) |
 | `AOAI_DEPLOYMENT` | Deployment name (e.g. gpt-4o) |
+| `INVITE_CODE` | Optional: If set, registration requires matching invitation code |
 
 ## Local Development
 

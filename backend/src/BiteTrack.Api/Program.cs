@@ -137,11 +137,20 @@ app.MapPost("/api/auth/register", async (AuthService auth,
                                          IHttpClientFactory httpClientFactory,
                                          HttpContext http) =>
 {
+    // Invitation code gate (optional). If INVITE_CODE env var is set, require that value.
+    var inviteCode = cfg["INVITE_CODE"];
+    if (!string.IsNullOrWhiteSpace(inviteCode))
+    {
+        if (string.IsNullOrWhiteSpace(req.InvitationCode) || !string.Equals(req.InvitationCode.Trim(), inviteCode.Trim(), StringComparison.Ordinal))
+        {
+            return Results.BadRequest(new { error = "Invalid invitation code" });
+        }
+    }
     var recaptchaSecret = cfg["RECAPTCHA_SECRET"];
     if (!string.IsNullOrWhiteSpace(recaptchaSecret))
     {
         if (string.IsNullOrWhiteSpace(req.RecaptchaToken))
-            return Results.BadRequest("Missing reCAPTCHA verification");
+            return Results.BadRequest(new { error = "Missing reCAPTCHA verification" });
             
         var client = httpClientFactory.CreateClient();
         var form = new FormUrlEncodedContent(new[]
@@ -153,7 +162,7 @@ app.MapPost("/api/auth/register", async (AuthService auth,
         
         var resp = await client.PostAsync("https://www.google.com/recaptcha/api/siteverify", form);
         if (!resp.IsSuccessStatusCode) 
-            return Results.BadRequest("reCAPTCHA verification failed");
+            return Results.BadRequest(new { error = "reCAPTCHA verification failed" });
             
         using var json = await resp.Content.ReadAsStreamAsync();
         using var doc = await System.Text.Json.JsonDocument.ParseAsync(json);
@@ -164,11 +173,17 @@ app.MapPost("/api/auth/register", async (AuthService auth,
         var score = root.TryGetProperty("score", out var sEl) ? sEl.GetDouble() : 0.0;
         
         if (!(success && action == "register" && score >= 0.5))
-            return Results.BadRequest("reCAPTCHA verification failed");
+            return Results.BadRequest(new { error = "reCAPTCHA verification failed" });
     }
-
-    var token = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
-    return Results.Ok(new { token });
+    try
+    {
+        var token = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
+        return Results.Ok(new { token });
+    }
+    catch (InvalidOperationException ex)
+    {
+        return Results.BadRequest(new { error = ex.Message });
+    }
 });
 
 app.MapPost("/api/auth/login", async (AuthService auth, LoginRequest req) =>
@@ -310,7 +325,7 @@ app.MapFallback(() => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwro
 app.Run();
 
 // DTOs & helper types
-record RegisterRequest(string Email, string Password, string DisplayName, string? RecaptchaToken);
+record RegisterRequest(string Email, string Password, string DisplayName, string? RecaptchaToken, string? InvitationCode);
 record LoginRequest(string Email, string Password);
 
 record MealDto(Guid Id, DateTime CreatedAtUtc, string Status, string PhotoPath, string? ThumbnailPath, string? Description, int? Calories, float? Protein, float? Carbs, float? Fat, IEnumerable<MealItemDto> Items, string? ErrorMessage)
