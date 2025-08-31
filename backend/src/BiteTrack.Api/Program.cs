@@ -70,7 +70,33 @@ var app = builder.Build();
 using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
-    db.Database.Migrate();
+    try
+    {
+        // Ensure directory for SQLite exists (in case volume mount created empty path)
+        var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
+        var dbPath = cfg.GetValue<string>("DB_PATH") ?? Path.Combine(AppContext.BaseDirectory, "bitetrack.db");
+        var dir = Path.GetDirectoryName(dbPath);
+        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
+
+        var pending = db.Database.GetPendingMigrations().ToList();
+        if (pending.Count > 0)
+        {
+            Console.WriteLine($"[DB] Applying {pending.Count} pending migration(s): {string.Join(", ", pending)}");
+            db.Database.Migrate();
+            Console.WriteLine("[DB] Migrations applied successfully.");
+        }
+        else
+        {
+            // Still call Migrate to ensure database gets created if first run without any migrations (defensive)
+            db.Database.Migrate();
+            Console.WriteLine("[DB] No pending migrations.");
+        }
+    }
+    catch (Exception ex)
+    {
+        Console.WriteLine("[DB][ERROR] Failed to apply migrations on startup: " + ex.Message);
+        throw; // Re-throw so container fails fast instead of running with a broken DB
+    }
 }
 
 // Check reCAPTCHA configuration
@@ -318,6 +344,33 @@ app.MapPut("/api/profile/goal", async (AppDbContext db, ClaimsPrincipal user, Go
     await db.SaveChangesAsync();
     return Results.Ok(new { calories = goal.Calories, protein = goal.Protein, carbs = goal.Carbs, fat = goal.Fat });
 }).RequireAuthorization();
+
+// Health / readiness endpoints (no auth)
+app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }))
+   .WithName("Liveness")
+   .WithDescription("Basic liveness probe; always returns ok if process is running.");
+
+app.MapGet("/health/ready", async (IServiceProvider sp) =>
+{
+    using var scope = sp.CreateScope();
+    var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
+    var details = new Dictionary<string, object?>();
+    try
+    {
+        var canConnect = await db.Database.CanConnectAsync();
+        details["dbCanConnect"] = canConnect;
+        var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+        details["pendingMigrations"] = pending;
+        if (!canConnect) return Results.Json(new { status = "unhealthy", details }, statusCode: 503);
+        if (pending.Count > 0) return Results.Json(new { status = "migrating", details }, statusCode: 503);
+        return Results.Ok(new { status = "ready", details });
+    }
+    catch (Exception ex)
+    {
+        details["exception"] = ex.Message;
+        return Results.Json(new { status = "error", details }, statusCode: 503);
+    }
+}).WithName("Readiness").WithDescription("Readiness probe; ensures DB is reachable and migrations are applied.");
 
 // SPA fallback: for any non-API route, serve index.html (supports client-side routing)
 app.MapFallback(() => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html"), "text/html"));
