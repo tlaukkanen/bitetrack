@@ -46,8 +46,8 @@ export default function Goal() {
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">My Goal</h1>
-      <p className="text-xs text-gray-600 bg-gray-50 border border-gray-200 rounded p-2">
+      <h1 className="text-xl font-bold text-emerald-600">My Goal</h1>
+      <p className="text-xs text-gray-500 bg-gray-50 border border-gray-200 rounded p-2">
         Tip: You can leave any value at 0 if you just want to track what you eat without setting a target for that macro.
       </p>
       <div className="space-y-3">
@@ -67,7 +67,7 @@ export default function Goal() {
           <span className="text-sm font-medium">Fat (g)</span>
           <input type="number" className="w-full border rounded p-2" value={fat} onChange={e=>setFat(e.target.value)} />
         </label>
-  <button disabled={mutation.isPending} onClick={submit} className="w-full bg-brand2 text-white rounded py-2 disabled:opacity-50">{mutation.isPending ? 'Saving...' : 'Save Goal'}</button>
+  <button disabled={mutation.isPending} onClick={submit} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded py-2 disabled:opacity-50">{mutation.isPending ? 'Saving...' : 'Save Goal'}</button>
         {isLoading && <div className="text-sm">Loading...</div>}
         {msg && <div className="text-sm text-green-600">{msg}</div>}
       </div>

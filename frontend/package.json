@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "vite build",
+    "build:docker": "vite build --outDir dist",
     "preview": "vite preview",
     "lint": "eslint src --ext .ts,.tsx"
   },

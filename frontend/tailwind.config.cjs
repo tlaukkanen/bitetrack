@@ -5,13 +5,8 @@ module.exports = {
   ],
   theme: {
     extend: {
-      colors: {
-        brand1: '#C9B5B2',
-        brand2: '#65E1BC',
-        brand3: '#A5E6C8',
-        brand4: '#D8ECC6',
-        brand5: '#FCF3DE',
-      }
+      // Custom brand palette removed in favor of Tailwind's
+      // emerald (primary), yellow & orange (secondary macros), gray scale, white surfaces
     },
   },
   plugins: [],

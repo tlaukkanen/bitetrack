@@ -1,7 +1,7 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
 import { getDailySummary, getMeals, MealDto, getGoal, Goal } from '../api';
-import { MacroCard, MacroCardGroup } from '../components/MacroCard';
+import { DailySummaryCard } from '../components/DailySummaryCard';
 import { MealCard } from '../components/MealCard';
 
 export default function Dashboard() {
@@ -42,7 +42,7 @@ export default function Dashboard() {
           className="px-2 py-1 text-lg font-semibold disabled:opacity-40"
           aria-label="Previous day"
         >&larr;</button>
-        <h1 className="text-xl font-bold text-center flex-1">
+  <h1 className="text-xl font-bold text-center flex-1 text-emerald-600">
           {isToday ? "Today's Macros" : formatHeading(selectedDate)}
         </h1>
         {!isToday ? (
@@ -57,18 +57,9 @@ export default function Dashboard() {
         )}
       </div>
       {summary && (
-        <MacroCardGroup
-          calories={summary.calories}
-            protein={summary.protein}
-            carbs={summary.carbs}
-            fat={summary.fat}
-            caloriesGoal={goal?.calories}
-            proteinGoal={goal?.protein}
-            carbsGoal={goal?.carbs}
-            fatGoal={goal?.fat}
-        />
+        <DailySummaryCard heading={"Daily Summary"} summary={summary} goal={goal} />
       )}
-      <h2 className="font-semibold">Meals</h2>
+      <h2 className="font-semibold">Meals and bites of {formatHeading(selectedDate)}</h2>
       <div className="space-y-3">
         {meals?.map((m: MealDto) => (
           <MealCard key={m.id} meal={m} />
@@ -77,6 +68,8 @@ export default function Dashboard() {
     </div>
   );
 }
+
+// DailySummaryCard extracted to components/DailySummaryCard.tsx
 
 // MealThumb moved into MealCard component
 

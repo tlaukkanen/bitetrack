@@ -59,6 +59,7 @@ services.AddAuthentication(o =>
 services.AddAuthorization();
 services.AddEndpointsApiExplorer();
 services.AddSwaggerGen();
+services.AddHttpClient();
 services.AddCors(o =>
 {
     o.AddPolicy("dev", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
@@ -70,6 +71,13 @@ using (var scope = app.Services.CreateScope())
 {
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     db.Database.Migrate();
+}
+
+// Check reCAPTCHA configuration
+var recaptchaSecret = app.Configuration["RECAPTCHA_SECRET"];
+if (string.IsNullOrWhiteSpace(recaptchaSecret))
+{
+    Console.WriteLine("[WARN] RECAPTCHA_SECRET not configured. Registration will skip reCAPTCHA verification (dev mode).");
 }
 
 // Static files (React build output). Place BEFORE auth so index.html is served anonymously.
@@ -123,8 +131,42 @@ app.UseAuthentication();
 app.UseAuthorization();
 
 // Auth endpoints
-app.MapPost("/api/auth/register", async (AuthService auth, RegisterRequest req) =>
+app.MapPost("/api/auth/register", async (AuthService auth, 
+                                         RegisterRequest req, 
+                                         IConfiguration cfg,
+                                         IHttpClientFactory httpClientFactory,
+                                         HttpContext http) =>
 {
+    var recaptchaSecret = cfg["RECAPTCHA_SECRET"];
+    if (!string.IsNullOrWhiteSpace(recaptchaSecret))
+    {
+        if (string.IsNullOrWhiteSpace(req.RecaptchaToken))
+            return Results.BadRequest("Missing reCAPTCHA verification");
+            
+        var client = httpClientFactory.CreateClient();
+        var form = new FormUrlEncodedContent(new[]
+        {
+            new KeyValuePair<string, string>("secret", recaptchaSecret),
+            new KeyValuePair<string, string>("response", req.RecaptchaToken),
+            new KeyValuePair<string, string>("remoteip", http.Connection.RemoteIpAddress?.ToString() ?? "")
+        });
+        
+        var resp = await client.PostAsync("https://www.google.com/recaptcha/api/siteverify", form);
+        if (!resp.IsSuccessStatusCode) 
+            return Results.BadRequest("reCAPTCHA verification failed");
+            
+        using var json = await resp.Content.ReadAsStreamAsync();
+        using var doc = await System.Text.Json.JsonDocument.ParseAsync(json);
+        var root = doc.RootElement;
+        
+        var success = root.GetProperty("success").GetBoolean();
+        var action = root.TryGetProperty("action", out var aEl) ? aEl.GetString() : null;
+        var score = root.TryGetProperty("score", out var sEl) ? sEl.GetDouble() : 0.0;
+        
+        if (!(success && action == "register" && score >= 0.5))
+            return Results.BadRequest("reCAPTCHA verification failed");
+    }
+
     var token = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
     return Results.Ok(new { token });
 });
@@ -268,7 +310,7 @@ app.MapFallback(() => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwro
 app.Run();
 
 // DTOs & helper types
-record RegisterRequest(string Email, string Password, string DisplayName);
+record RegisterRequest(string Email, string Password, string DisplayName, string? RecaptchaToken);
 record LoginRequest(string Email, string Password);
 
 record MealDto(Guid Id, DateTime CreatedAtUtc, string Status, string PhotoPath, string? ThumbnailPath, string? Description, int? Calories, float? Protein, float? Carbs, float? Fat, IEnumerable<MealItemDto> Items, string? ErrorMessage)

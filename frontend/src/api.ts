@@ -27,8 +27,8 @@ export async function login(email: string, password: string) {
   const r = await api.post('/auth/login', { email, password });
   return r.data.token as string;
 }
-export async function register(email: string, password: string, displayName: string) {
-  const r = await api.post('/auth/register', { email, password, displayName });
+export async function register(email: string, password: string, displayName: string, recaptchaToken?: string) {
+  const r = await api.post('/auth/register', { email, password, displayName, recaptchaToken });
   return r.data.token as string;
 }
 export async function getDailySummary(date?: string) {

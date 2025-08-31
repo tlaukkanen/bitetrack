@@ -2,4 +2,8 @@
 @tailwind components;
 @tailwind utilities;
 
-body { font-family: system-ui, sans-serif; }
+body {
+	font-family: system-ui, sans-serif;
+	background-color: #f9fafb; /* gray-50 */
+	color: #1f2937; /* gray-800 */
+}

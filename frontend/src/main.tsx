@@ -8,7 +8,9 @@ import AddMeal from './pages/AddMeal';
 import Login from './pages/Login';
 import MealDetail from './pages/MealDetail';
 import Goal from './pages/Goal';
+import Profile from './pages/Profile';
 import { initToken } from './api';
+import { Header } from './components/Header';
 
 initToken();
 
@@ -28,9 +30,9 @@ function NavBar() {
   };
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 text-sm">
-      <a href="#today" onClick={handleToday} className="font-medium">Today</a>
-      <Link to="/add">Add</Link>
-      {hasToken ? <Link to="/goal">My Goal</Link> : <Link to="/login">Login</Link>}
+      <a href="#today" onClick={handleToday} className="font-medium text-emerald-600">Today</a>
+      <Link to="/add" className="text-gray-700">Add</Link>
+      {hasToken ? <Link to="/goal" className="text-gray-700">My Goal</Link> : <Link to="/login" className="text-gray-700">Login</Link>}
     </nav>
   );
 }
@@ -56,12 +58,14 @@ function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
+        <Header />
         <NavBar />
-        <div className="pb-16 max-w-md mx-auto">
+        <div className="pt-2 pb-16 max-w-md mx-auto bg-gray-50 min-h-screen">
           <Routes>
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/add" element={<RequireAuth><AddMeal /></RequireAuth>} />
             <Route path="/goal" element={<RequireAuth><Goal /></RequireAuth>} />
+            <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
             <Route path="/meal/:id" element={<RequireAuth><MealDetail /></RequireAuth>} />
             <Route path="/login" element={<Login />} />
           </Routes>

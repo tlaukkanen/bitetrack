@@ -17,7 +17,7 @@ export function MacroCard({ label, value, goal, className = '', unit = '' }: Mac
   const circumference = 2 * Math.PI * r;
   const ringProgress = pct != null ? (pct / 100) * circumference : 0;
   return (
-    <div className={`bg-white rounded p-2 shadow text-center flex flex-col items-stretch ${className}`}> 
+    <div className={`bg-white rounded p-2 shadow-md text-center flex flex-col items-stretch ${className}`}> 
       <div className="text-[10px] uppercase tracking-wide text-gray-500">{label}</div>
       <div className={`font-semibold text-sm ${over ? 'text-red-600' : ''} sm:mb-1`}>{value != null ? Math.round(value) : '-'}{unit}</div>
       {hasGoal && (
@@ -37,7 +37,7 @@ export function MacroCard({ label, value, goal, className = '', unit = '' }: Mac
                 cx={24}
                 cy={24}
                 r={r}
-                stroke={over ? '#dc2626' : 'var(--color-brand2, #2563eb)'}
+                stroke={over ? '#dc2626' : (label === 'Protein' ? '#10b981' : label === 'Carbs' ? '#facc15' : label === 'Fat' ? '#fb923c' : '#10b981')}
                 strokeWidth={4}
                 fill="none"
                 strokeDasharray={`${ringProgress} ${circumference - ringProgress}`}
@@ -57,9 +57,9 @@ export function MacroCard({ label, value, goal, className = '', unit = '' }: Mac
           </div>
           {/* Bar on >= small screens */}
           <div className="mt-1 space-y-0.5 hidden sm:block">
-            <div className="h-1.5 w-full bg-gray-100 rounded overflow-hidden">
+            <div className="h-2 w-full bg-gray-200 rounded overflow-hidden">
               <div
-                className={`h-full ${over ? 'bg-red-500' : 'bg-brand2'} transition-all`}
+                className={`h-full ${over ? 'bg-red-500' : label === 'Protein' ? 'bg-emerald-500' : label === 'Carbs' ? 'bg-yellow-400' : label === 'Fat' ? 'bg-orange-400' : 'bg-emerald-500'} transition-all`}
                 style={{ width: `${pct}%` }}
               />
             </div>

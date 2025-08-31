@@ -1,20 +1,18 @@
 version: '3.9'
 services:
-  api:
-    build: ./backend
+  bitetrack:
+    build: .
     environment:
       - ASPNETCORE_ENVIRONMENT=Development
-      - JWT_SECRET=change-me
+      - JWT_SECRET=change-me-please
       - AOAI_ENDPOINT=https://oai-droid-sweden.openai.azure.com/
       - AOAI_API_KEY=YOUR_KEY_HERE
       - AOAI_DEPLOYMENT=gpt-4o
+      - DB_PATH=/app/data/bitetrack.db
+      - PHOTO_STORAGE_ROOT=/app/photos
     volumes:
       - ./data:/app/data
+      - ./photos:/app/photos
     ports:
       - "5087:8080"
-  web:
-    build: ./frontend
-    depends_on:
-      - api
-    ports:
-      - "5173:80"
+      - "8080:8080"

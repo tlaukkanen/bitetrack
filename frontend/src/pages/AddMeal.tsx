@@ -45,7 +45,7 @@ export default function AddMeal() {
 
   return (
     <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold">Add Meal</h1>
+      <h1 className="text-xl font-bold text-emerald-600">Add Meal</h1>
       <div className="space-y-2">
         <label className="block text-sm font-medium">Photo</label>
         <input type="file" accept="image/*" capture="environment" onChange={e => setFile(e.target.files?.[0] || null)} />
@@ -53,14 +53,14 @@ export default function AddMeal() {
       <div className="space-y-2">
         <label className="block text-sm font-medium" htmlFor="meal-dt">Meal Date & Time</label>
         <input id="meal-dt" type="datetime-local" value={createdAtLocal} onChange={e => setCreatedAtLocal(e.target.value)} className="border rounded px-2 py-1" />
-        <p className="text-xs text-gray-500">Adjust if logging a past meal.</p>
+  <p className="text-xs text-gray-500">Adjust if logging a past meal.</p>
       </div>
       <div className="space-y-1">
         <label className="block text-sm font-medium" htmlFor="meal-desc">Description (optional)</label>
         <textarea id="meal-desc" rows={2} value={description} onChange={e=>setDescription(e.target.value)} className="w-full border rounded px-2 py-1 text-sm" placeholder="e.g. Chicken salad with avocado" />
-        <p className="text-xs text-gray-500">Add a note so you remember the meal later.</p>
+  <p className="text-xs text-gray-500">Add a note so you remember the meal later.</p>
       </div>
-      <button disabled={!file || busy} onClick={() => mutation.mutate()} className="bg-brand2 text-white rounded px-4 py-2 disabled:opacity-50">Upload</button>
+  <button disabled={!file || busy} onClick={() => mutation.mutate()} className="bg-emerald-500 hover:bg-emerald-600 text-white rounded px-4 py-2 disabled:opacity-50">Upload</button>
       {busy && <div className="text-sm">Uploading & processing...</div>}
       {mutation.isError && <div className="text-sm text-red-600">Error: {(mutation.error as any).message}</div>}
     </div>

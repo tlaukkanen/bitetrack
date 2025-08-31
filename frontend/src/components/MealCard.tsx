@@ -5,7 +5,7 @@ import { MealDto, fetchMealImage } from '../api';
 // Displays a single meal entry with thumbnail, time, status, and macros.
 export function MealCard({ meal }: { meal: MealDto }) {
   return (
-    <Link to={`/meal/${meal.id}`} className="block p-3 rounded bg-white shadow border">
+  <Link to={`/meal/${meal.id}`} className="block p-3 rounded-lg bg-white shadow-sm border">
       <div className="flex gap-3">
         <MealThumb meal={meal} />
         <div className="flex-1 flex flex-col justify-between min-h-[5rem]">
@@ -59,9 +59,9 @@ function MealThumb({ meal }: { meal: MealDto }) {
       if (url) URL.revokeObjectURL(url);
     };
   }, [meal.id, meal.thumbnailPath]);
-  if (!meal.thumbnailPath) return <div className="w-20 h-20 rounded bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">No photo</div>;
+  if (!meal.thumbnailPath) return <div className="w-20 h-20 rounded-2 bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">No photo</div>;
   return (
-    <div className="w-20 h-20 rounded bg-gray-100 overflow-hidden flex-shrink-0">
+    <div className="w-20 h-20 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
       {url ? (
         <img src={url} alt="thumb" className="object-cover w-full h-full" />
       ) : (
