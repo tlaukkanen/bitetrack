@@ -10,6 +10,9 @@ export function setToken(token: string | null) {
     try { localStorage.removeItem('token'); } catch {}
     delete api.defaults.headers.common['Authorization'];
   }
+  try {
+    window.dispatchEvent(new CustomEvent('authTokenChanged', { detail: { token } }));
+  } catch {}
 }
 
 export function initToken() {
@@ -73,6 +76,11 @@ export default api;
 
 export function mealImageUrl(id: string, thumb?: boolean) {
   return `/api/meals/${id}/image${thumb ? '?thumb=true' : ''}`;
+}
+
+// Basic logout helper (extend here if you later add server-side revocation)
+export function logout() {
+  setToken(null);
 }
 
 // Fetch meal image with auth header and return a blob URL for <img src>

@@ -1,10 +1,11 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
-import { setToken } from '../api';
+// Removed direct logout import; using hook instead
+import { useAuthToken } from '../hooks/useAuthToken';
 
 export function Header() {
   const navigate = useNavigate();
-  const hasToken = !!localStorage.getItem('token');
+  const { hasToken, logout } = useAuthToken();
   const [open, setOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
 
@@ -18,8 +19,9 @@ export function Header() {
     return () => window.removeEventListener('mousedown', handle);
   }, [open]);
 
-  function logout() {
-    setToken(null);
+
+  function handleLogout() {
+    logout();
     setOpen(false);
     navigate('/login');
   }
@@ -56,7 +58,7 @@ export function Header() {
                   <button onClick={() => { setOpen(false); navigate('/goal'); }} className="w-full text-left px-3 py-2 hover:bg-emerald-50" role="menuitem">My goal</button>
                   <button onClick={() => { setOpen(false); navigate('/profile'); }} className="w-full text-left px-3 py-2 hover:bg-emerald-50" role="menuitem">Profile</button>
                   <div className="h-px bg-gray-200 my-1" />
-                  <button onClick={logout} className="w-full text-left px-3 py-2 hover:bg-emerald-50 text-rose-600" role="menuitem">Logout</button>
+                  <button onClick={handleLogout} className="w-full text-left px-3 py-2 hover:bg-emerald-50 text-rose-600" role="menuitem">Logout</button>
                 </div>
               )}
             </div>

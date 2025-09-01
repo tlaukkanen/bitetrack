@@ -11,6 +11,7 @@ import Goal from './pages/Goal';
 import Profile from './pages/Profile';
 import { initToken } from './api';
 import { Header } from './components/Header';
+import { useAuthToken } from './hooks/useAuthToken';
 
 initToken();
 
@@ -20,7 +21,8 @@ function NavBar() {
   const navigate = useNavigate();
   const location = useLocation();
   const isRoot = location.pathname === '/';
-  const hasToken = !!localStorage.getItem('token');
+  const { hasToken } = useAuthToken();
+  if (!hasToken) return null;
   const handleToday = (e: React.MouseEvent) => {
     e.preventDefault();
     if (!isRoot) navigate('/');
