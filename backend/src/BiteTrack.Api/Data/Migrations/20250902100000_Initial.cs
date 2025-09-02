@@ -1,11 +1,9 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
 
-#nullable disable
-
 namespace BiteTrack.Api.Data.Migrations
 {
-    public partial class AddUserGoal : Migration
+    public partial class Initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
         {
@@ -13,10 +11,10 @@ namespace BiteTrack.Api.Data.Migrations
                 name: "Users",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Email = table.Column<string>(type: "TEXT", nullable: false),
-                    DisplayName = table.Column<string>(type: "TEXT", nullable: false),
-                    PasswordHash = table.Column<string>(type: "TEXT", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Email = table.Column<string>(type: "nvarchar(450)", nullable: false),
+                    DisplayName = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    PasswordHash = table.Column<string>(type: "nvarchar(max)", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -27,20 +25,21 @@ namespace BiteTrack.Api.Data.Migrations
                 name: "Meals",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    CreatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false),
-                    Status = table.Column<int>(type: "INTEGER", nullable: false),
-                    PhotoPath = table.Column<string>(type: "TEXT", nullable: false),
-                    ThumbnailPath = table.Column<string>(type: "TEXT", nullable: false),
-                    Calories = table.Column<int>(type: "INTEGER", nullable: true),
-                    Protein = table.Column<float>(type: "REAL", nullable: true),
-                    Carbs = table.Column<float>(type: "REAL", nullable: true),
-                    Fat = table.Column<float>(type: "REAL", nullable: true),
-                    RawAiJson = table.Column<string>(type: "TEXT", nullable: true),
-                    AiModel = table.Column<string>(type: "TEXT", nullable: true),
-                    ErrorMessage = table.Column<string>(type: "TEXT", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    CreatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false),
+                    Status = table.Column<int>(type: "int", nullable: false),
+                    PhotoPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    ThumbnailPath = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Description = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    Calories = table.Column<int>(type: "int", nullable: true),
+                    Protein = table.Column<float>(type: "real", nullable: true),
+                    Carbs = table.Column<float>(type: "real", nullable: true),
+                    Fat = table.Column<float>(type: "real", nullable: true),
+                    RawAiJson = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    AiModel = table.Column<string>(type: "nvarchar(max)", nullable: true),
+                    ErrorMessage = table.Column<string>(type: "nvarchar(max)", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -57,13 +56,13 @@ namespace BiteTrack.Api.Data.Migrations
                 name: "UserGoals",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    UserId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Calories = table.Column<int>(type: "INTEGER", nullable: false),
-                    Protein = table.Column<float>(type: "REAL", nullable: false),
-                    Carbs = table.Column<float>(type: "REAL", nullable: false),
-                    Fat = table.Column<float>(type: "REAL", nullable: false),
-                    UpdatedAtUtc = table.Column<DateTime>(type: "TEXT", nullable: false)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    UserId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Calories = table.Column<int>(type: "int", nullable: false),
+                    Protein = table.Column<float>(type: "real", nullable: false),
+                    Carbs = table.Column<float>(type: "real", nullable: false),
+                    Fat = table.Column<float>(type: "real", nullable: false),
+                    UpdatedAtUtc = table.Column<DateTime>(type: "datetime2", nullable: false)
                 },
                 constraints: table =>
                 {
@@ -80,15 +79,15 @@ namespace BiteTrack.Api.Data.Migrations
                 name: "MealFoodItems",
                 columns: table => new
                 {
-                    Id = table.Column<Guid>(type: "TEXT", nullable: false),
-                    MealId = table.Column<Guid>(type: "TEXT", nullable: false),
-                    Name = table.Column<string>(type: "TEXT", nullable: false),
-                    Grams = table.Column<float>(type: "REAL", nullable: true),
-                    Calories = table.Column<int>(type: "INTEGER", nullable: true),
-                    Protein = table.Column<float>(type: "REAL", nullable: true),
-                    Carbs = table.Column<float>(type: "REAL", nullable: true),
-                    Fat = table.Column<float>(type: "REAL", nullable: true),
-                    Confidence = table.Column<float>(type: "REAL", nullable: true)
+                    Id = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    MealId = table.Column<Guid>(type: "uniqueidentifier", nullable: false),
+                    Name = table.Column<string>(type: "nvarchar(max)", nullable: false),
+                    Grams = table.Column<float>(type: "real", nullable: true),
+                    Calories = table.Column<int>(type: "int", nullable: true),
+                    Protein = table.Column<float>(type: "real", nullable: true),
+                    Carbs = table.Column<float>(type: "real", nullable: true),
+                    Fat = table.Column<float>(type: "real", nullable: true),
+                    Confidence = table.Column<float>(type: "real", nullable: true)
                 },
                 constraints: table =>
                 {
@@ -128,13 +127,10 @@ namespace BiteTrack.Api.Data.Migrations
         {
             migrationBuilder.DropTable(
                 name: "MealFoodItems");
-
             migrationBuilder.DropTable(
                 name: "UserGoals");
-
             migrationBuilder.DropTable(
                 name: "Meals");
-
             migrationBuilder.DropTable(
                 name: "Users");
         }

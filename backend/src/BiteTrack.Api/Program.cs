@@ -10,6 +10,7 @@ using BiteTrack.Api.Processing;
 using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
+using Microsoft.EntityFrameworkCore.SqlServer;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -19,8 +20,18 @@ var services = builder.Services;
 
 services.AddDbContext<AppDbContext>(opts =>
 {
-    var dbPath = config.GetValue<string>("DB_PATH") ?? Path.Combine(AppContext.BaseDirectory, "bitetrack.db");
-    opts.UseSqlite($"Data Source={dbPath}");
+    // Prefer full connection string via DB_CONNECTION or ConnectionStrings:Default
+    var conn = config.GetConnectionString("Default") ?? config["DB_CONNECTION"];
+    if (string.IsNullOrWhiteSpace(conn))
+    {
+        // Fallback dev default (local SQL Server container)
+        var host = config.GetValue<string>("DB_HOST") ?? "sqlserver"; // docker-compose service name
+        var db = config.GetValue<string>("DB_NAME") ?? "BiteTrack";
+        var user = config.GetValue<string>("DB_USER") ?? "sa";
+        var pwd = config.GetValue<string>("DB_PASSWORD") ?? "Your_strong_password123"; // override in env
+        conn = $"Server={host};Database={db};User Id={user};Password={pwd};TrustServerCertificate=True;Encrypt=False;";
+    }
+    opts.UseSqlServer(conn);
 });
 
 services.AddScoped<AuthService>();
@@ -72,12 +83,6 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
-        // Ensure directory for SQLite exists (in case volume mount created empty path)
-        var cfg = scope.ServiceProvider.GetRequiredService<IConfiguration>();
-        var dbPath = cfg.GetValue<string>("DB_PATH") ?? Path.Combine(AppContext.BaseDirectory, "bitetrack.db");
-        var dir = Path.GetDirectoryName(dbPath);
-        if (!string.IsNullOrWhiteSpace(dir) && !Directory.Exists(dir)) Directory.CreateDirectory(dir);
-
         var pending = db.Database.GetPendingMigrations().ToList();
         if (pending.Count > 0)
         {
@@ -87,7 +92,6 @@ using (var scope = app.Services.CreateScope())
         }
         else
         {
-            // Still call Migrate to ensure database gets created if first run without any migrations (defensive)
             db.Database.Migrate();
             Console.WriteLine("[DB] No pending migrations.");
         }
@@ -95,7 +99,7 @@ using (var scope = app.Services.CreateScope())
     catch (Exception ex)
     {
         Console.WriteLine("[DB][ERROR] Failed to apply migrations on startup: " + ex.Message);
-        throw; // Re-throw so container fails fast instead of running with a broken DB
+        throw;
     }
 }
 

@@ -31,11 +31,14 @@ WORKDIR /app
 # Environment configuration
 ENV ASPNETCORE_URLS=http://+:8080 \
     ASPNETCORE_ENVIRONMENT=Production \
-    DB_PATH=/app/data/bitetrack.db \
+    DB_HOST=sqlserver \
+    DB_NAME=BiteTrack \
+    DB_USER=sa \
+    DB_PASSWORD=Your_strong_password123 \
     PHOTO_STORAGE_ROOT=/app/photos
 # Copy published output
 COPY --from=backend-build /app/publish .
 # Create mount points for persistent data (optional but convenient)
-VOLUME ["/app/data", "/app/photos"]
+VOLUME ["/app/photos"]
 EXPOSE 8080
 ENTRYPOINT ["dotnet", "BiteTrack.Api.dll"]

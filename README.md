@@ -10,7 +10,7 @@ Food macro tracking app with .NET 8 Web API backend & React (Vite + TS) frontend
 - React dashboard with polling & live macro totals
 
 ## Tech Stack
-- Backend: .NET 8 Minimal API, EF Core (SQLite dev) | Projects: Api, Data, Domain, Processing
+- Backend: .NET 8 Minimal API, EF Core (SQL Server) | Projects: Api, Data, Domain, Processing
 - Frontend: React 18, Vite, TypeScript, Tailwind, React Query
 - AI: Azure OpenAI (gpt-4o) vision (requires proper model deployment)
 - Containerization: Docker + docker-compose
@@ -19,7 +19,11 @@ Food macro tracking app with .NET 8 Web API backend & React (Vite + TS) frontend
 | Name | Description |
 |------|-------------|
 | `JWT_SECRET` | Secret for signing JWTs |
-| `DB_PATH` | Optional path to SQLite DB (defaults to bitetrack.db) |
+| `DB_CONNECTION` | (Production/Azure) Full SQL Server connection string (overrides individual DB_* vars) |
+| `DB_HOST` | SQL Server host (dev defaults to `sqlserver`) |
+| `DB_NAME` | Database name (default `BiteTrack`) |
+| `DB_USER` | SQL auth user (default `sa` for dev) |
+| `DB_PASSWORD` | SQL auth password (match docker-compose SA password in dev) |
 | `PHOTO_STORAGE_ROOT` | Directory for stored photos (defaults to ./photos) |
 | `AOAI_ENDPOINT` | Azure OpenAI endpoint URL |
 | `AOAI_API_KEY` | Azure OpenAI key (local dev only) |
@@ -47,11 +51,11 @@ npm run dev
 ```
 Frontend dev server proxies API calls to `http://localhost:5087`.
 
-### Run with Docker Compose
+### Run with Docker Compose (API + SQL Server)
 ```bash
 docker compose up --build
 ```
-Visit: Frontend http://localhost:5173 | Swagger http://localhost:5087/swagger
+Visit: Frontend http://localhost:5173 | Swagger http://localhost:5087/swagger | SQL Server localhost,14333
 
 ### Register & Use
 1. Register: POST /api/auth/register (or via UI Login -> switch to register)
