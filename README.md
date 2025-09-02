@@ -29,6 +29,7 @@ Food macro tracking app with .NET 8 Web API backend & React (Vite + TS) frontend
 | `AOAI_API_KEY` | Azure OpenAI key (local dev only) |
 | `AOAI_DEPLOYMENT` | Deployment name (e.g. gpt-4o) |
 | `INVITE_CODE` | Optional: If set, registration requires matching invitation code |
+| `DB_INIT_SECRET` | Secret token required to trigger `?create=yes` on `/health/ready` (dev safeguard) |
 
 ## Local Development
 

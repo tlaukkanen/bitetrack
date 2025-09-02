@@ -124,12 +124,6 @@ using (var scope = app.Services.CreateScope())
     }
 }
 
-// Check reCAPTCHA configuration
-var recaptchaSecret = app.Configuration["RECAPTCHA_SECRET"];
-if (string.IsNullOrWhiteSpace(recaptchaSecret))
-{
-    Console.WriteLine("[WARN] RECAPTCHA_SECRET not configured. Registration will skip reCAPTCHA verification (dev mode).");
-}
 
 // Static files (React build output). Place BEFORE auth so index.html is served anonymously.
 app.UseDefaultFiles();
@@ -184,9 +178,7 @@ app.UseAuthorization();
 // Auth endpoints
 app.MapPost("/api/auth/register", async (AuthService auth, 
                                          RegisterRequest req, 
-                                         IConfiguration cfg,
-                                         IHttpClientFactory httpClientFactory,
-                                         HttpContext http) =>
+                                         IConfiguration cfg) =>
 {
     // Invitation code gate (optional). If INVITE_CODE env var is set, require that value.
     var inviteCode = cfg["INVITE_CODE"];
@@ -196,35 +188,6 @@ app.MapPost("/api/auth/register", async (AuthService auth,
         {
             return Results.BadRequest(new { error = "Invalid invitation code" });
         }
-    }
-    var recaptchaSecret = cfg["RECAPTCHA_SECRET"];
-    if (!string.IsNullOrWhiteSpace(recaptchaSecret))
-    {
-        if (string.IsNullOrWhiteSpace(req.RecaptchaToken))
-            return Results.BadRequest(new { error = "Missing reCAPTCHA verification" });
-            
-        var client = httpClientFactory.CreateClient();
-        var form = new FormUrlEncodedContent(new[]
-        {
-            new KeyValuePair<string, string>("secret", recaptchaSecret),
-            new KeyValuePair<string, string>("response", req.RecaptchaToken),
-            new KeyValuePair<string, string>("remoteip", http.Connection.RemoteIpAddress?.ToString() ?? "")
-        });
-        
-        var resp = await client.PostAsync("https://www.google.com/recaptcha/api/siteverify", form);
-        if (!resp.IsSuccessStatusCode) 
-            return Results.BadRequest(new { error = "reCAPTCHA verification failed" });
-            
-        using var json = await resp.Content.ReadAsStreamAsync();
-        using var doc = await System.Text.Json.JsonDocument.ParseAsync(json);
-        var root = doc.RootElement;
-        
-        var success = root.GetProperty("success").GetBoolean();
-        var action = root.TryGetProperty("action", out var aEl) ? aEl.GetString() : null;
-        var score = root.TryGetProperty("score", out var sEl) ? sEl.GetDouble() : 0.0;
-        
-        if (!(success && action == "register" && score >= 0.5))
-            return Results.BadRequest(new { error = "reCAPTCHA verification failed" });
     }
     try
     {
@@ -375,14 +338,44 @@ app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }))
    .WithName("Liveness")
    .WithDescription("Basic liveness probe; always returns ok if process is running.");
 
-app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req) =>
+app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfiguration cfg) =>
 {
     using var scope = sp.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var details = new Dictionary<string, object?>();
     var createRequested = string.Equals(req.Query["create"], "yes", StringComparison.OrdinalIgnoreCase);
+    var providedSecret = req.Query["secret"].ToString();
+    var expectedSecret = cfg["DB_INIT_SECRET"];
     details["createRequested"] = createRequested;
     details["env"] = sp.GetRequiredService<IHostEnvironment>().EnvironmentName;
+    if (createRequested)
+    {
+        if (string.IsNullOrWhiteSpace(expectedSecret))
+        {
+            details["createAuthorized"] = false;
+            details["createDeniedReason"] = "Server missing DB_INIT_SECRET";
+            return Results.Json(new { status = "create-forbidden", details }, statusCode: 403);
+        }
+        if (string.IsNullOrWhiteSpace(providedSecret))
+        {
+            details["createAuthorized"] = false;
+            details["createDeniedReason"] = "Missing secret query parameter";
+            return Results.Json(new { status = "create-forbidden", details }, statusCode: 403);
+        }
+        try
+        {
+            var a = System.Text.Encoding.UTF8.GetBytes(providedSecret);
+            var b = System.Text.Encoding.UTF8.GetBytes(expectedSecret);
+            if (a.Length != b.Length || !System.Security.Cryptography.CryptographicOperations.FixedTimeEquals(a, b))
+            {
+                details["createAuthorized"] = false;
+                details["createDeniedReason"] = "Invalid secret";
+                return Results.Json(new { status = "create-forbidden", details }, statusCode: 403);
+            }
+            details["createAuthorized"] = true;
+        }
+        finally { }
+    }
     try
     {
         var canConnect = await db.Database.CanConnectAsync();
@@ -398,7 +391,7 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req) =>
         details["pendingMigrations"] = pending;
 
         // Optional creation trigger (dev only) BEFORE other schema checks
-        if (createRequested && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        if (createRequested && Equals(details["createAuthorized"], true) && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
         {
             try
             {
@@ -447,7 +440,7 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req) =>
         catch
         {
             usersTableExists = false;
-            if (createRequested && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            if (createRequested && Equals(details["createAuthorized"], true) && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
             {
                 // Last-chance dev fallback if Users still missing and we DO have compiled migrations
                 try
@@ -482,7 +475,7 @@ app.MapFallback(() => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwro
 app.Run();
 
 // DTOs & helper types
-record RegisterRequest(string Email, string Password, string DisplayName, string? RecaptchaToken, string? InvitationCode);
+record RegisterRequest(string Email, string Password, string DisplayName, string? InvitationCode);
 record LoginRequest(string Email, string Password);
 
 record MealDto(Guid Id, DateTime CreatedAtUtc, string Status, string PhotoPath, string? ThumbnailPath, string? Description, int? Calories, float? Protein, float? Carbs, float? Fat, IEnumerable<MealItemDto> Items, string? ErrorMessage)
