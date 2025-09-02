@@ -83,17 +83,38 @@ using (var scope = app.Services.CreateScope())
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     try
     {
+        var allMigrations = db.Database.GetMigrations().ToList();
+        var appliedMigrations = db.Database.GetAppliedMigrations().ToList();
         var pending = db.Database.GetPendingMigrations().ToList();
+        Console.WriteLine($"[DB] Available migrations: {(allMigrations.Count == 0 ? "(none)" : string.Join(", ", allMigrations))}");
+        Console.WriteLine($"[DB] Applied migrations: {(appliedMigrations.Count == 0 ? "(none)" : string.Join(", ", appliedMigrations))}");
+        Console.WriteLine($"[DB] Pending migrations: {(pending.Count == 0 ? "(none)" : string.Join(", ", pending))}");
+
         if (pending.Count > 0)
         {
             Console.WriteLine($"[DB] Applying {pending.Count} pending migration(s): {string.Join(", ", pending)}");
             db.Database.Migrate();
             Console.WriteLine("[DB] Migrations applied successfully.");
         }
+        else if (allMigrations.Count == 0)
+        {
+            // No compiled migrations in assembly – likely forgot to rebuild image after adding baseline.
+            if (app.Environment.IsDevelopment())
+            {
+                Console.WriteLine("[DB][WARN] No migrations found in assembly. Using EnsureCreated() as dev fallback. Rebuild image to include migrations.");
+                if (db.Database.EnsureCreated())
+                    Console.WriteLine("[DB] EnsureCreated created schema (dev fallback).");
+                else
+                    Console.WriteLine("[DB] EnsureCreated found existing schema (dev fallback).");
+            }
+            else
+            {
+                Console.WriteLine("[DB][ERROR] No migrations found in assembly in non-development environment.");
+            }
+        }
         else
         {
-            db.Database.Migrate();
-            Console.WriteLine("[DB] No pending migrations.");
+            Console.WriteLine("[DB] Database already up to date (no pending migrations).");
         }
     }
     catch (Exception ex)
@@ -354,19 +375,98 @@ app.MapGet("/health/live", () => Results.Ok(new { status = "ok" }))
    .WithName("Liveness")
    .WithDescription("Basic liveness probe; always returns ok if process is running.");
 
-app.MapGet("/health/ready", async (IServiceProvider sp) =>
+app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req) =>
 {
     using var scope = sp.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<AppDbContext>();
     var details = new Dictionary<string, object?>();
+    var createRequested = string.Equals(req.Query["create"], "yes", StringComparison.OrdinalIgnoreCase);
+    details["createRequested"] = createRequested;
+    details["env"] = sp.GetRequiredService<IHostEnvironment>().EnvironmentName;
     try
     {
         var canConnect = await db.Database.CanConnectAsync();
         details["dbCanConnect"] = canConnect;
-        var pending = (await db.Database.GetPendingMigrationsAsync()).ToList();
+        if (!canConnect)
+            return Results.Json(new { status = "unhealthy", details }, statusCode: 503);
+
+        var all = db.Database.GetMigrations().ToList();
+        var applied = db.Database.GetAppliedMigrations().ToList();
+        var pending = db.Database.GetPendingMigrations().ToList();
+        details["allMigrations"] = all;
+        details["appliedMigrations"] = applied;
         details["pendingMigrations"] = pending;
-        if (!canConnect) return Results.Json(new { status = "unhealthy", details }, statusCode: 503);
-        if (pending.Count > 0) return Results.Json(new { status = "migrating", details }, statusCode: 503);
+
+        // Optional creation trigger (dev only) BEFORE other schema checks
+        if (createRequested && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        {
+            try
+            {
+                if (pending.Count > 0)
+                {
+                    db.Database.Migrate();
+                    details["createAction"] = "Applied pending migrations";
+                }
+                else if (all.Count == 0)
+                {
+                    // fallback (no migrations compiled)
+                    if (db.Database.EnsureCreated())
+                        details["createAction"] = "EnsureCreated created schema";
+                    else
+                        details["createAction"] = "EnsureCreated found existing schema";
+                }
+                else
+                {
+                    details["createAction"] = "No action (up to date)";
+                }
+                // Refresh lists after action
+                all = db.Database.GetMigrations().ToList();
+                applied = db.Database.GetAppliedMigrations().ToList();
+                pending = db.Database.GetPendingMigrations().ToList();
+                details["allMigrations"] = all;
+                details["appliedMigrations"] = applied;
+                details["pendingMigrations"] = pending;
+            }
+            catch (Exception cex)
+            {
+                details["createError"] = cex.Message;
+            }
+        }
+
+        if (pending.Count > 0)
+            return Results.Json(new { status = "migrating", details }, statusCode: 503);
+        if (all.Count == 0)
+            return Results.Json(new { status = "no-migrations-compiled", details }, statusCode: 503);
+
+        bool usersTableExists;
+        try
+        {
+            await db.Users.AsNoTracking().Take(1).AnyAsync();
+            usersTableExists = true;
+        }
+        catch
+        {
+            usersTableExists = false;
+            if (createRequested && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+            {
+                // Last-chance dev fallback if Users still missing and we DO have compiled migrations
+                try
+                {
+                    db.Database.Migrate();
+                    await db.Users.AsNoTracking().Take(1).AnyAsync();
+                    usersTableExists = true;
+                    details["postFallbackMigrate"] = true;
+                }
+                catch (Exception mfex)
+                {
+                    details["postFallbackMigrateError"] = mfex.Message;
+                }
+            }
+        }
+        details["usersTableExists"] = usersTableExists;
+        if (!usersTableExists)
+            return Results.Json(new { status = "schema-missing", details }, statusCode: 503);
+
         return Results.Ok(new { status = "ready", details });
     }
     catch (Exception ex)
@@ -374,7 +474,7 @@ app.MapGet("/health/ready", async (IServiceProvider sp) =>
         details["exception"] = ex.Message;
         return Results.Json(new { status = "error", details }, statusCode: 503);
     }
-}).WithName("Readiness").WithDescription("Readiness probe; ensures DB is reachable and migrations are applied.");
+}).WithName("Readiness").WithDescription("Readiness probe; ensures DB reachable, migrations applied, and base schema present. Supports ?create=yes in Development.");
 
 // SPA fallback: for any non-API route, serve index.html (supports client-side routing)
 app.MapFallback(() => Results.File(Path.Combine(AppContext.BaseDirectory, "wwwroot", "index.html"), "text/html"));
