@@ -20,9 +20,7 @@ export default function Login() {
     try {
       let token: string;
       if (mode === 'register') {
-        // Execute reCAPTCHA v3 for registration
-        const recaptchaToken = await (window as any).grecaptcha.execute(RECAPTCHA_SITE_KEY, { action: 'register' });
-  token = await register(email, password, displayName || email.split('@')[0], recaptchaToken, invitationCode || undefined);
+        token = await register(email, password, displayName || email.split('@')[0], invitationCode || undefined);
       } else {
         token = await login(email, password);
       }
