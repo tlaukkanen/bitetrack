@@ -391,7 +391,7 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfig
         details["pendingMigrations"] = pending;
 
         // Optional creation trigger (dev only) BEFORE other schema checks
-        if (createRequested && Equals(details["createAuthorized"], true) && sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+        if (createRequested && Equals(details["createAuthorized"], true))
         {
             try
             {
@@ -426,11 +426,6 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfig
             }
         }
 
-        if (pending.Count > 0)
-            return Results.Json(new { status = "migrating", details }, statusCode: 503);
-        if (all.Count == 0)
-            return Results.Json(new { status = "no-migrations-compiled", details }, statusCode: 503);
-
         bool usersTableExists;
         try
         {
@@ -459,6 +454,11 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfig
         details["usersTableExists"] = usersTableExists;
         if (!usersTableExists)
             return Results.Json(new { status = "schema-missing", details }, statusCode: 503);
+
+        if (pending.Count > 0)
+            return Results.Json(new { status = "migrating", details }, statusCode: 503);
+        if (all.Count == 0)
+            return Results.Json(new { status = "no-migrations-compiled", details }, statusCode: 503);
 
         return Results.Ok(new { status = "ready", details });
     }
