@@ -402,6 +402,8 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfig
                 }
                 else if (all.Count == 0)
                 {
+                    db.Database.EnsureDeleted()
+
                     // fallback (no migrations compiled)
                     if (db.Database.EnsureCreated())
                         details["createAction"] = "EnsureCreated created schema";
