@@ -402,13 +402,18 @@ app.MapGet("/health/ready", async (IServiceProvider sp, HttpRequest req, IConfig
                 }
                 else if (all.Count == 0)
                 {
-                    db.Database.EnsureDeleted()
-
-                    // fallback (no migrations compiled)
-                    if (db.Database.EnsureCreated())
-                        details["createAction"] = "EnsureCreated created schema";
+                    // No compiled migrations. In Development allow EnsureCreated fallback.
+                    if (sp.GetRequiredService<IHostEnvironment>().IsDevelopment())
+                    {
+                        if (db.Database.EnsureCreated())
+                            details["createAction"] = "EnsureCreated created schema (dev fallback)";
+                        else
+                            details["createAction"] = "EnsureCreated found existing schema (dev fallback)";
+                    }
                     else
-                        details["createAction"] = "EnsureCreated found existing schema";
+                    {
+                        details["createAction"] = "No migrations compiled in production";
+                    }
                 }
                 else
                 {

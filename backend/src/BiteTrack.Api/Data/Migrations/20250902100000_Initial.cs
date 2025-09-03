@@ -3,6 +3,8 @@ using Microsoft.EntityFrameworkCore.Migrations;
 
 namespace BiteTrack.Api.Data.Migrations
 {
+    // Added explicit Migration attribute so EF Core can discover this migration at runtime.
+    [Migration("20250902100000_Initial")]
     public partial class Initial : Migration
     {
         protected override void Up(MigrationBuilder migrationBuilder)
