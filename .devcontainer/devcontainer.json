@@ -1,0 +1,52 @@
+{
+  "name": "BiteTrack Dev",
+  "dockerComposeFile": [
+    "docker-compose.yml"
+  ],
+  "service": "dev",
+  "workspaceFolder": "/workspace",
+  "features": {
+    "ghcr.io/devcontainers/features/dotnet:2": {
+      "version": "8.0",
+      "installAspNet": true
+    },
+    "ghcr.io/devcontainers/features/node:1": {
+      "version": "20"
+    },
+    "ghcr.io/devcontainers/features/git:1": {},
+    "ghcr.io/devcontainers/features/sqlcmd:1": {}
+  },
+  "remoteUser": "vscode",
+  "forwardPorts": [5087, 5173, 8080, 1433],
+  "portsAttributes": {
+    "8080": { "label": "API" },
+    "5173": { "label": "Vite Dev" },
+    "1433": { "label": "SQL Server" }
+  },
+  "postCreateCommand": "dotnet restore backend/BiteTrack.sln && npm --prefix frontend install",
+  "postStartCommand": "echo 'Dev container started. Use tasks or terminals to run backend and frontend.'",
+  "customizations": {
+    "vscode": {
+      "extensions": [
+        "ms-dotnettools.csharp",
+        "ms-dotnettools.vscode-dotnet-runtime",
+        "dbaeumer.vscode-eslint",
+        "esbenp.prettier-vscode",
+        "ms-azuretools.vscode-docker",
+        "ms-mssql.mssql",
+        "GitHub.vscode-pull-request-github"
+      ],
+      "settings": {
+        "dotnet.defaultSolution": "backend/BiteTrack.sln",
+        "editor.formatOnSave": true,
+        "files.exclude": {
+          "**/bin": true,
+          "**/obj": true
+        }
+      }
+    }
+  },
+  "mounts": [
+    "source=${localWorkspaceFolder}/photos,target=/workspace/photos,type=bind"
+  ]
+}

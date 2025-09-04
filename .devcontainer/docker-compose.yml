@@ -1,0 +1,28 @@
+services:
+  dev:
+    image: mcr.microsoft.com/devcontainers/dotnet:1-8.0
+    command: sleep infinity
+    volumes:
+      - ..:/workspace:cached
+    environment:
+      ASPNETCORE_ENVIRONMENT: Development
+      DB_HOST: sqlserver
+      DB_NAME: BiteTrack
+      DB_USER: sa
+      DB_PASSWORD: Your_strong_password123
+      JWT_SECRET: change-me-please
+      INVITE_CODE: devinvite
+    depends_on:
+      - sqlserver
+  sqlserver:
+    image: mcr.microsoft.com/mssql/server:2025-latest
+    environment:
+      ACCEPT_EULA: "Y"
+      MSSQL_SA_PASSWORD: "Your_strong_password123"
+    ports:
+      - "1433:1433"
+    volumes:
+      - mssql-data:/var/opt/mssql
+
+volumes:
+  mssql-data:

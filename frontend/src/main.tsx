@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import MealDetail from './pages/MealDetail';
 import Goal from './pages/Goal';
 import Profile from './pages/Profile';
+import { MdAdd } from 'react-icons/md';
 import { initToken } from './api';
 import { Header } from './components/Header';
 import { useAuthToken } from './hooks/useAuthToken';
@@ -31,9 +32,15 @@ function NavBar() {
     }, 0);
   };
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around py-2 text-sm">
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center py-2 text-sm">
       <a href="#today" onClick={handleToday} className="font-medium text-emerald-600">Today</a>
-      <Link to="/add" className="text-gray-700">Add</Link>
+      <Link
+        to="/add"
+        aria-label="Add meal"
+        className="w-12 h-12 -mt-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
+      >
+        <MdAdd size={28} />
+      </Link>
       {hasToken ? <Link to="/goal" className="text-gray-700">My Goal</Link> : <Link to="/login" className="text-gray-700">Login</Link>}
     </nav>
   );
