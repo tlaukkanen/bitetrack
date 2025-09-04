@@ -1,9 +1,12 @@
 using System;
 using Microsoft.EntityFrameworkCore.Migrations;
+using Microsoft.EntityFrameworkCore.Infrastructure; // For DbContextAttribute
+using BiteTrack.Api.Data; // For AppDbContext reference
 
 namespace BiteTrack.Api.Data.Migrations
 {
-    // Added explicit Migration attribute so EF Core can discover this migration at runtime.
+    // Added explicit Migration & DbContext attributes so EF Core can discover this migration at runtime in published builds.
+    [DbContext(typeof(AppDbContext))]
     [Migration("20250902100000_Initial")]
     public partial class Initial : Migration
     {
