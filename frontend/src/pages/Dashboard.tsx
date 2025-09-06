@@ -3,7 +3,9 @@ import { useQuery } from '@tanstack/react-query';
 import { getDailySummary, getMeals, MealDto, getGoal, Goal } from '../api';
 import { DailySummaryCard } from '../components/DailySummaryCard';
 import { MealCard } from '../components/MealCard';
-import { GiKnifeFork } from 'react-icons/gi';
+import Skeleton from 'react-loading-skeleton';
+import 'react-loading-skeleton/dist/skeleton.css';
+import { Link } from 'react-router-dom';
 
 export default function Dashboard() {
   const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
@@ -23,7 +25,7 @@ export default function Dashboard() {
     queryKey: ['meals', dateStr],
     queryFn: () => getMeals(dateStr),
     // Poll only for today while processing meals
-    refetchInterval: isToday ? 5000 : false
+    refetchInterval: isToday ? 15000 : false
   });
   const isAnyLoading = isSummaryLoading || isGoalLoading || isMealsLoading;
 
@@ -65,10 +67,44 @@ export default function Dashboard() {
         loading={isSummaryLoading || isGoalLoading}
       />
       <h2 className="font-semibold">Meals and bites of {formatHeading(selectedDate)}</h2>
-      {isAnyLoading ? (
-        <div className="flex items-center justify-center py-8 text-emerald-600" aria-live="polite" aria-busy>
-          <GiKnifeFork className="text-4xl animate-spin" />
-          <span className="ml-3 font-medium">Loading your bites…</span>
+      {isMealsLoading ? (
+        <div className="space-y-3" aria-live="polite" aria-busy>
+          {[...Array(3)].map((_, i) => (
+            <div key={i} className="block p-3 rounded-lg bg-white shadow-sm border">
+              <div className="flex gap-3">
+                <div className="w-20 h-20 rounded-md overflow-hidden flex-shrink-0">
+                  <Skeleton height="100%" />
+                </div>
+                <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[5rem]">
+                  <div className="flex justify-between text-xs text-gray-600">
+                    <Skeleton width={80} height={12} />
+                    <Skeleton width={60} height={12} />
+                  </div>
+                  <div className="mt-1">
+                    <Skeleton width="60%" height={12} />
+                  </div>
+                  <div className="mt-2 flex items-end justify-between gap-3">
+                    <Skeleton width={80} height={16} />
+                    <div className="flex gap-3">
+                      <Skeleton width={40} height={14} />
+                      <Skeleton width={40} height={14} />
+                      <Skeleton width={40} height={14} />
+                    </div>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      ) : meals && meals.length === 0 ? (
+        <div className="py-8 text-center">
+          <p className="text-gray-500">No recorded meals yet.</p>
+          <Link
+            to="/add"
+            className="inline-block mt-3 px-4 py-2 rounded-md bg-emerald-500 text-white font-medium shadow-sm border border-emerald-600 hover:bg-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition"
+          >
+            Add your first meal
+          </Link>
         </div>
       ) : (
         <div className="space-y-3">

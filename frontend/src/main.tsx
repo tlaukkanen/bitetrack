@@ -33,9 +33,15 @@ function NavBar() {
     }, 0);
   };
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20">
-      <div className="max-w-md mx-auto flex justify-around items-center py-2 text-sm px-4">
-        <a href="#today" onClick={handleToday} className="font-medium text-emerald-600">Today</a>
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20 pb-[env(safe-area-inset-bottom)]">
+      <div className="max-w-md mx-auto flex justify-around items-center py text-base px-4">
+        <a
+          href="#today"
+          onClick={handleToday}
+          className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-emerald-600"
+        >
+          Today
+        </a>
         <Link
           to="/add"
           aria-label="Add meal"
@@ -43,7 +49,11 @@ function NavBar() {
         >
           <MdAdd size={28} />
         </Link>
-        {hasToken ? <Link to="/goal" className="text-gray-700">My Goal</Link> : <Link to="/login" className="text-gray-700">Login</Link>}
+        {hasToken ? (
+          <Link to="/goal" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">My Goal</Link>
+        ) : (
+          <Link to="/login" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">Login</Link>
+        )}
       </div>
     </nav>
   );
@@ -73,7 +83,7 @@ function App() {
         <Header />
         <NavBar />
         <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
-        <div className="pt-2 pb-16 max-w-md mx-auto bg-gray-50 min-h-screen">
+        <div className="pt-2 pb-24 max-w-md mx-auto bg-gray-50 min-h-screen">
           <Routes>
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/add" element={<RequireAuth><AddMeal /></RequireAuth>} />
