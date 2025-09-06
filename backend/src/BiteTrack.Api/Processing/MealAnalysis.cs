@@ -11,9 +11,8 @@ using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
 using System.ClientModel;
-using OpenAI.Files;
-using OpenAI.Responses;
 using OpenAI.Chat;
+using BiteTrack.Api.Utils;
 
 namespace BiteTrack.Api.Processing;
 
@@ -62,13 +61,8 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
             ? new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey))
             : new AzureOpenAIClient(new Uri(endpoint), new Azure.Identity.DefaultAzureCredential());
 
-        var chatClient = azureClient.GetChatClient(deployment);
-
-        // Prepare prompt and image input. Use OpenAI file upload to allow the model to retrieve the image.
-        using var stream = File.OpenRead(localPhotoPath);
-        var fileClient = azureClient.GetOpenAIFileClient();
-        var uploaded = await fileClient.UploadFileAsync(stream, Path.GetFileName(localPhotoPath), FileUploadPurpose.Vision, ct);
-        var uploadedFile = uploaded.Value;
+    var chatClient = azureClient.GetChatClient(deployment);
+    using var stream = File.OpenRead(localPhotoPath);
 
         var systemPrompt = "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. Return only JSON that matches the provided schema with no extra commentary.";
         var userInstruction = "Estimate totals and list recognizable items with grams and per-item macros when possible.";
@@ -90,34 +84,19 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
                 jsonSchemaIsStrict: true)
         };
 
+        // Provide the image inline (Azure GA does not support Files yet).
+        var contentType = ContentTypeHelper.GetContentType(localPhotoPath);
+        var bytes = BinaryData.FromStream(stream);
         var messages = new List<ChatMessage>
         {
             new SystemChatMessage(systemPrompt),
             ChatMessage.CreateUserMessage(
                 ChatMessageContentPart.CreateTextPart(userInstruction),
-                // Use the uploaded file by id as an input file part. Some Azure Chat deployments may not yet
-                // support image-by-file reference; if so, we will fall back to inline bytes below.
-                ChatMessageContentPart.CreateFilePart(uploadedFile.Id))
+                ChatMessageContentPart.CreateImagePart(bytes, contentType))
         };
 
         var completion = await chatClient.CompleteChatAsync(messages, options, ct);
         string content = completion.Value.Content?.FirstOrDefault()?.Text ?? "{}";
-
-        // Fallback: If model couldn't use file reference, pass image bytes inline and retry once.
-        if (string.IsNullOrWhiteSpace(content) || content.Trim() == "{}")
-        {
-            stream.Position = 0;
-            var bytes = BinaryData.FromStream(stream);
-            var inlineMessages = new List<ChatMessage>
-            {
-                new SystemChatMessage(systemPrompt),
-                ChatMessage.CreateUserMessage(
-                    ChatMessageContentPart.CreateTextPart(userInstruction),
-                    ChatMessageContentPart.CreateImagePart(bytes, "image/jpeg"))
-            };
-            var completion2 = await chatClient.CompleteChatAsync(inlineMessages, options, ct);
-            content = completion2.Value.Content?.FirstOrDefault()?.Text ?? content;
-        }
 
         using var doc = JsonDocument.Parse(content);
         var root = doc.RootElement;

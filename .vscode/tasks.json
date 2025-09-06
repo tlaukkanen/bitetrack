@@ -98,6 +98,17 @@
 				"-c",
 				"Debug"
 			]
+		},
+		{
+			"label": "build:api",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/src/BiteTrack.Api/BiteTrack.Api.csproj",
+				"-c",
+				"Debug"
+			]
 		}
 	]
 }
