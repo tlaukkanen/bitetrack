@@ -32,16 +32,18 @@ function NavBar() {
     }, 0);
   };
   return (
-    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t flex justify-around items-center py-2 text-sm">
-      <a href="#today" onClick={handleToday} className="font-medium text-emerald-600">Today</a>
-      <Link
-        to="/add"
-        aria-label="Add meal"
-        className="w-12 h-12 -mt-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
-      >
-        <MdAdd size={28} />
-      </Link>
-      {hasToken ? <Link to="/goal" className="text-gray-700">My Goal</Link> : <Link to="/login" className="text-gray-700">Login</Link>}
+    <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20">
+      <div className="max-w-md mx-auto flex justify-around items-center py-2 text-sm px-4">
+        <a href="#today" onClick={handleToday} className="font-medium text-emerald-600">Today</a>
+        <Link
+          to="/add"
+          aria-label="Add meal"
+          className="w-12 h-12 -mt-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
+        >
+          <MdAdd size={28} />
+        </Link>
+        {hasToken ? <Link to="/goal" className="text-gray-700">My Goal</Link> : <Link to="/login" className="text-gray-700">Login</Link>}
+      </div>
     </nav>
   );
 }

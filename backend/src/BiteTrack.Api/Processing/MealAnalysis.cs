@@ -77,11 +77,45 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 
         var schema = new
         {
-            items = new[]
+            type = "object",
+            properties = new
             {
-                new { name = "string", grams = (float?)null, calories = (int?)null, protein = (float?)null, carbs = (float?)null, fat = (float?)null, confidence = (float?)null }
+                items = new
+                {
+                    type = "array",
+                    items = new
+                    {
+                        type = "object",
+                        properties = new
+                        {
+                            name = new { type = "string" },
+                            grams = new { type = new object[] { "number", "null" } },
+                            calories = new { type = new object[] { "integer", "null" } },
+                            protein = new { type = new object[] { "number", "null" } },
+                            carbs = new { type = new object[] { "number", "null" } },
+                            fat = new { type = new object[] { "number", "null" } },
+                            confidence = new { type = new object[] { "number", "null" }, minimum = 0, maximum = 1 }
+                        },
+                        required = new[] { "name" },
+                        additionalProperties = false
+                    }
+                },
+                totals = new
+                {
+                    type = "object",
+                    properties = new
+                    {
+                        calories = new { type = "integer" },
+                        protein = new { type = "number" },
+                        carbs = new { type = "number" },
+                        fat = new { type = "number" }
+                    },
+                    required = new[] { "calories", "protein", "carbs", "fat" },
+                    additionalProperties = false
+                }
             },
-            totals = new { calories = 0, protein = 0.0f, carbs = 0.0f, fat = 0.0f }
+            required = new[] { "items", "totals" },
+            additionalProperties = false
         };
 
         var options = new ChatCompletionOptions

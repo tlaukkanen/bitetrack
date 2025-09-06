@@ -34,7 +34,7 @@ export default function Dashboard() {
     return () => window.removeEventListener('gotoToday', handler as EventListener);
   }, []);
   return (
-    <div className="p-4 space-y-4">
+    <div className="p-4 pb-24 space-y-4">
       <div className="flex items-center justify-between">
         <button
           type="button"
