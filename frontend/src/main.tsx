@@ -13,6 +13,7 @@ import { MdAdd } from 'react-icons/md';
 import { initToken } from './api';
 import { Header } from './components/Header';
 import { useAuthToken } from './hooks/useAuthToken';
+import { Toaster } from 'react-hot-toast';
 
 initToken();
 
@@ -71,6 +72,7 @@ function App() {
       <BrowserRouter>
         <Header />
         <NavBar />
+        <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
         <div className="pt-2 pb-16 max-w-md mx-auto bg-gray-50 min-h-screen">
           <Routes>
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />

@@ -1,8 +1,9 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal } from '../api';
-import { FiTrash2 } from 'react-icons/fi';
+import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage } from '../api';
+import toast from 'react-hot-toast';
+import { FiTrash2, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
 import { MacroCardGroup } from '../components/MacroCard';
 
 export default function MealDetail() {
@@ -32,6 +33,7 @@ export default function MealDetail() {
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [dtLocal, setDtLocal] = useState('');
+  const [rotation, setRotation] = useState(0);
 
   useEffect(() => {
     if (meal) {
@@ -45,8 +47,13 @@ export default function MealDetail() {
       const pad = (n: number) => String(n).padStart(2,'0');
       const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       setDtLocal(local);
+      setRotation(0);
     }
   }, [meal?.id, meal?.status]);
+
+  useEffect(() => {
+    if (!edit) setRotation(0);
+  }, [edit]);
 
   const updateMut = useMutation({
     mutationFn: async () => {
@@ -65,6 +72,7 @@ export default function MealDetail() {
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['meals'] });
       setEdit(false);
+      toast.success('Meal updated');
     }
   });
 
@@ -77,6 +85,7 @@ export default function MealDetail() {
       qc.setQueryData(['meal', updated.id], updated);
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['meals'] });
+      toast.success('Retry started');
     }
   });
 
@@ -88,6 +97,7 @@ export default function MealDetail() {
     onSuccess: () => {
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['meals'] });
+      toast.success('Meal deleted');
       navigate('/');
     }
   });
@@ -104,7 +114,7 @@ export default function MealDetail() {
   useEffect(() => {
     let revoked: string | null = null;
     if (meal && meal.status !== 'Processing') {
-      fetchMealImage(meal.id).then(url => {
+      fetchMealImage(meal.id, false, true).then(url => {
         setImageUrl(prev => {
           if (prev) URL.revokeObjectURL(prev);
           revoked = url;
@@ -177,7 +187,67 @@ export default function MealDetail() {
           </div>
         );
       })()}
-  {imgSrc && <img src={imgSrc} alt="Meal" className="w-full rounded" />}
+  {imgSrc && (
+        <div className="w-full">
+          {edit && (
+            <div className="flex justify-end gap-2 mb-2">
+              <button
+                type="button"
+                onClick={async () => {
+                  setRotation(r => (r + 270) % 360);
+                  try {
+                    if (meal) {
+                      const updated = await rotateMealImage(meal.id, 'left', 90);
+                      qc.setQueryData(['meal', updated.id], updated);
+                      setImageUrl(null);
+                      // refetch fresh image
+                      const url = await fetchMealImage(updated.id, false, true);
+                      setImageUrl(url);
+                      toast.success('Rotated left');
+                    }
+                  } catch (e) {
+                    toast.error('Failed to rotate');
+                  }
+                }}
+                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                title="Rotate left 90°"
+                aria-label="Rotate left 90 degrees"
+              >
+                <FiRotateCcw /> Left
+              </button>
+              <button
+                type="button"
+                onClick={async () => {
+                  setRotation(r => (r + 90) % 360);
+                  try {
+                    if (meal) {
+                      const updated = await rotateMealImage(meal.id, 'right', 90);
+                      qc.setQueryData(['meal', updated.id], updated);
+                      setImageUrl(null);
+                      const url = await fetchMealImage(updated.id, false, true);
+                      setImageUrl(url);
+                      toast.success('Rotated right');
+                    }
+                  } catch (e) {
+                    toast.error('Failed to rotate');
+                  }
+                }}
+                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                title="Rotate right 90°"
+                aria-label="Rotate right 90 degrees"
+              >
+                <FiRotateCw /> Right
+              </button>
+            </div>
+          )}
+          <img
+            src={imgSrc}
+            alt="Meal"
+            className="block w-full max-h-[60vh] object-contain rounded"
+            style={{ transform: `rotate(${rotation}deg)`, transformOrigin: 'center' }}
+          />
+        </div>
+      )}
       <div className="text-sm text-gray-600 flex justify-between items-center">Status: {meal.status}
         {meal.status !== 'Processing' && (
           <button onClick={()=>setEdit(e=>!e)} className="text-xs text-brand2 underline ml-2">{edit ? 'Cancel' : 'Edit'}</button>

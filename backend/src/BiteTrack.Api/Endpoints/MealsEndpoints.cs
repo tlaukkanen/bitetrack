@@ -7,6 +7,8 @@ using BiteTrack.Api.Processing;
 using BiteTrack.Api.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Routing;
+using SixLabors.ImageSharp;
+using SixLabors.ImageSharp.Processing;
 
 public static class MealsEndpoints
 {
@@ -107,6 +109,55 @@ public static class MealsEndpoints
             if (!System.IO.File.Exists(full)) return Results.NotFound();
             var contentType = ContentTypeHelper.GetContentType(full);
             return Results.File(full, contentType);
+        });
+
+        group.MapPost("/{id:guid}/image/rotate", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, IPhotoStorage storage, Guid id, string? direction, int? degrees) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty) return Results.Unauthorized();
+            var meal = await meals.GetMealAsync(userId, id);
+            if (meal is null) return Results.NotFound();
+            if (string.IsNullOrWhiteSpace(meal.PhotoPath)) return Results.BadRequest("No photo to rotate");
+
+            var full = storage.ResolvePath(meal.PhotoPath);
+            if (!System.IO.File.Exists(full)) return Results.NotFound();
+
+            int deg = Math.Abs(degrees ?? 90) % 360;
+            if (deg % 90 != 0) return Results.BadRequest("degrees must be a multiple of 90");
+            bool ccw = string.Equals(direction, "left", StringComparison.OrdinalIgnoreCase) || string.Equals(direction, "ccw", StringComparison.OrdinalIgnoreCase);
+            deg = ccw ? (360 - deg) % 360 : deg;
+
+            using (var image = await Image.LoadAsync(full))
+            {
+                image.Metadata.ExifProfile = null;
+                switch (deg)
+                {
+                    case 90: image.Mutate(x => x.Rotate(RotateMode.Rotate90)); break;
+                    case 180: image.Mutate(x => x.Rotate(RotateMode.Rotate180)); break;
+                    case 270: image.Mutate(x => x.Rotate(RotateMode.Rotate270)); break;
+                    default: break;
+                }
+
+                await using var ms = new MemoryStream();
+                var ext = System.IO.Path.GetExtension(full).ToLowerInvariant();
+                if (ext == ".png") await image.SaveAsPngAsync(ms);
+                else if (ext == ".webp") await image.SaveAsWebpAsync(ms);
+                else await image.SaveAsJpegAsync(ms);
+                ms.Position = 0;
+                var contentType = ContentTypeHelper.GetContentType(full);
+                if (!string.IsNullOrWhiteSpace(meal.ThumbnailPath))
+                {
+                    await storage.DeleteAsync(meal.ThumbnailPath);
+                }
+                await storage.DeleteAsync(meal.PhotoPath);
+                var saved = await storage.SaveAsync(meal.PhotoPath, ms, contentType);
+                meal.PhotoPath = saved.PhotoPath;
+                meal.ThumbnailPath = saved.ThumbnailPath;
+                meal.UpdatedAtUtc = DateTime.UtcNow;
+                await meals.SaveChangesAsync();
+            }
+
+            return Results.Ok(MealDto.FromEntity(meal));
         });
 
         group.MapDelete("/{id:guid}", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, IPhotoStorage storage, Guid id) =>

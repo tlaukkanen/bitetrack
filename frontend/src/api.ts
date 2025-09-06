@@ -93,11 +93,19 @@ export function logout() {
 }
 
 // Fetch meal image with auth header and return a blob URL for <img src>
-export async function fetchMealImage(id: string, thumb?: boolean): Promise<string> {
+export async function fetchMealImage(id: string, thumb?: boolean, bust?: boolean): Promise<string> {
+  const params: Record<string, any> = {};
+  if (thumb) params.thumb = true;
+  if (bust) params._ = Date.now();
   const r = await api.get(`/meals/${id}/image`, {
-    params: thumb ? { thumb: true } : undefined,
+    params: Object.keys(params).length ? params : undefined,
     responseType: 'blob'
   });
   const blobUrl = URL.createObjectURL(r.data);
   return blobUrl;
+}
+
+export async function rotateMealImage(id: string, direction: 'left' | 'right' = 'right', degrees: number = 90): Promise<MealDto> {
+  const r = await api.post(`/meals/${id}/image/rotate`, null, { params: { direction, degrees } });
+  return r.data as MealDto;
 }
