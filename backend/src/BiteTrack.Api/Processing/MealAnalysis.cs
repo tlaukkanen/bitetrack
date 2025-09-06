@@ -58,8 +58,16 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
         if (string.IsNullOrWhiteSpace(endpoint)) throw new InvalidOperationException("AOAI_ENDPOINT not configured");
 
         AzureOpenAIClient azureClient = !string.IsNullOrWhiteSpace(apiKey)
-            ? new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey))
-            : new AzureOpenAIClient(new Uri(endpoint), new Azure.Identity.DefaultAzureCredential());
+            ? new AzureOpenAIClient(
+                new Uri(endpoint),
+                new ApiKeyCredential(apiKey),
+                new AzureOpenAIClientOptions(version: AzureOpenAIClientOptions.ServiceVersion.V2024_10_21)
+                )
+            : new AzureOpenAIClient(
+                new Uri(endpoint),
+                new Azure.Identity.DefaultAzureCredential(),
+                new AzureOpenAIClientOptions(version: AzureOpenAIClientOptions.ServiceVersion.V2024_10_21)
+                );
 
     var chatClient = azureClient.GetChatClient(deployment);
     using var stream = File.OpenRead(localPhotoPath);
