@@ -3,6 +3,7 @@
     <TargetFramework>net8.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+    <NoWarn>$(NoWarn);OPENAI001</NoWarn>
   </PropertyGroup>
   <ItemGroup>
     <PackageReference Include="BCrypt.Net-Next" Version="4.0.3" />
@@ -16,6 +17,7 @@
     <PackageReference Include="System.IdentityModel.Tokens.Jwt" Version="7.5.1" />
     <PackageReference Include="Azure.AI.OpenAI" Version="2.0.0" />
     <PackageReference Include="Azure.Identity" Version="1.11.4" />
+    <PackageReference Include="OpenAI" Version="2.4.0" />
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.5.0" />
   <PackageReference Include="SixLabors.ImageSharp" Version="3.1.11" />
   </ItemGroup>

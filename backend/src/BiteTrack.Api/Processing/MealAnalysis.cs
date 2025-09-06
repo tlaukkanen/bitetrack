@@ -1,5 +1,5 @@
 using System.Text.Json;
-using Azure.AI.OpenAI; // placeholder for future integration
+using Azure.AI.OpenAI; // AzureOpenAIClient type lives here
 using BiteTrack.Api.Data;
 using BiteTrack.Api.Domain;
 using Microsoft.EntityFrameworkCore;
@@ -10,6 +10,10 @@ using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.DependencyInjection;
 using SixLabors.ImageSharp;
 using SixLabors.ImageSharp.Processing;
+using System.ClientModel;
+using OpenAI.Files;
+using OpenAI.Responses;
+using OpenAI.Chat;
 
 namespace BiteTrack.Api.Processing;
 
@@ -46,22 +50,100 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 {
     private readonly IConfiguration _config;
     public AzureOpenAiMealAnalyzer(IConfiguration config) { _config = config; }
-    public Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, CancellationToken ct = default)
+    public async Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, CancellationToken ct = default)
     {
-        var name = Path.GetFileNameWithoutExtension(localPhotoPath);
-        int hash = name.Aggregate(0, (a, c) => a + c);
-        int calories = 350 + (hash % 200);
-        float protein = 20 + (hash % 30);
-        float carbs = 30 + (hash % 40);
-        float fat = 10 + (hash % 20);
-        var item = new MealItemResult("meal", null, calories, protein, carbs, fat, 0.5f);
-        var json = JsonSerializer.Serialize(new
+        var endpoint = _config.GetValue<string>("AOAI_ENDPOINT");
+        var apiKey = _config.GetValue<string>("AOAI_API_KEY");
+        var deployment = _config.GetValue<string>("AOAI_DEPLOYMENT") ?? "gpt-4o";
+
+        if (string.IsNullOrWhiteSpace(endpoint)) throw new InvalidOperationException("AOAI_ENDPOINT not configured");
+
+        AzureOpenAIClient azureClient = !string.IsNullOrWhiteSpace(apiKey)
+            ? new AzureOpenAIClient(new Uri(endpoint), new ApiKeyCredential(apiKey))
+            : new AzureOpenAIClient(new Uri(endpoint), new Azure.Identity.DefaultAzureCredential());
+
+        var chatClient = azureClient.GetChatClient(deployment);
+
+        // Prepare prompt and image input. Use OpenAI file upload to allow the model to retrieve the image.
+        using var stream = File.OpenRead(localPhotoPath);
+        var fileClient = azureClient.GetOpenAIFileClient();
+        var uploaded = await fileClient.UploadFileAsync(stream, Path.GetFileName(localPhotoPath), FileUploadPurpose.Vision, ct);
+        var uploadedFile = uploaded.Value;
+
+        var systemPrompt = "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. Return only JSON that matches the provided schema with no extra commentary.";
+        var userInstruction = "Estimate totals and list recognizable items with grams and per-item macros when possible.";
+
+        var schema = new
         {
-            items = new[] { new { name = item.Name, grams = (float?)null, calories = item.Calories, protein = item.Protein, carbs = item.Carbs, fat = item.Fat, confidence = item.Confidence } },
-            totals = new { calories, protein, carbs, fat }
-        });
-        var result = new MealAnalysisResult(json, calories, protein, carbs, fat, new[] { item });
-        return Task.FromResult(result);
+            items = new[]
+            {
+                new { name = "string", grams = (float?)null, calories = (int?)null, protein = (float?)null, carbs = (float?)null, fat = (float?)null, confidence = (float?)null }
+            },
+            totals = new { calories = 0, protein = 0.0f, carbs = 0.0f, fat = 0.0f }
+        };
+
+        var options = new ChatCompletionOptions
+        {
+            ResponseFormat = ChatResponseFormat.CreateJsonSchemaFormat(
+                jsonSchemaFormatName: "meal_analysis",
+                jsonSchema: BinaryData.FromString(JsonSerializer.Serialize(schema)),
+                jsonSchemaIsStrict: true)
+        };
+
+        var messages = new List<ChatMessage>
+        {
+            new SystemChatMessage(systemPrompt),
+            ChatMessage.CreateUserMessage(
+                ChatMessageContentPart.CreateTextPart(userInstruction),
+                // Use the uploaded file by id as an input file part. Some Azure Chat deployments may not yet
+                // support image-by-file reference; if so, we will fall back to inline bytes below.
+                ChatMessageContentPart.CreateFilePart(uploadedFile.Id))
+        };
+
+        var completion = await chatClient.CompleteChatAsync(messages, options, ct);
+        string content = completion.Value.Content?.FirstOrDefault()?.Text ?? "{}";
+
+        // Fallback: If model couldn't use file reference, pass image bytes inline and retry once.
+        if (string.IsNullOrWhiteSpace(content) || content.Trim() == "{}")
+        {
+            stream.Position = 0;
+            var bytes = BinaryData.FromStream(stream);
+            var inlineMessages = new List<ChatMessage>
+            {
+                new SystemChatMessage(systemPrompt),
+                ChatMessage.CreateUserMessage(
+                    ChatMessageContentPart.CreateTextPart(userInstruction),
+                    ChatMessageContentPart.CreateImagePart(bytes, "image/jpeg"))
+            };
+            var completion2 = await chatClient.CompleteChatAsync(inlineMessages, options, ct);
+            content = completion2.Value.Content?.FirstOrDefault()?.Text ?? content;
+        }
+
+        using var doc = JsonDocument.Parse(content);
+        var root = doc.RootElement;
+        var totals = root.GetProperty("totals");
+        int calories = totals.GetProperty("calories").GetInt32();
+        float protein = totals.GetProperty("protein").GetSingle();
+        float carbs = totals.GetProperty("carbs").GetSingle();
+        float fat = totals.GetProperty("fat").GetSingle();
+
+        var itemsList = new List<MealItemResult>();
+        if (root.TryGetProperty("items", out var itemsEl) && itemsEl.ValueKind == JsonValueKind.Array)
+        {
+            foreach (var it in itemsEl.EnumerateArray())
+            {
+                string name = it.TryGetProperty("name", out var n) ? n.GetString() ?? "item" : "item";
+                float? grams = it.TryGetProperty("grams", out var g) && g.ValueKind != JsonValueKind.Null ? g.GetSingle() : (float?)null;
+                int? ic = it.TryGetProperty("calories", out var c) && c.ValueKind != JsonValueKind.Null ? c.GetInt32() : (int?)null;
+                float? ip = it.TryGetProperty("protein", out var p) && p.ValueKind != JsonValueKind.Null ? p.GetSingle() : (float?)null;
+                float? ia = it.TryGetProperty("carbs", out var a) && a.ValueKind != JsonValueKind.Null ? a.GetSingle() : (float?)null;
+                float? ifat = it.TryGetProperty("fat", out var fEl) && fEl.ValueKind != JsonValueKind.Null ? fEl.GetSingle() : (float?)null;
+                float? conf = it.TryGetProperty("confidence", out var confEl) && confEl.ValueKind != JsonValueKind.Null ? confEl.GetSingle() : (float?)null;
+                itemsList.Add(new MealItemResult(name, grams, ic, ip, ia, ifat, conf));
+            }
+        }
+
+        return new MealAnalysisResult(content, calories, protein, carbs, fat, itemsList);
     }
 }
 

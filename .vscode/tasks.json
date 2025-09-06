@@ -1,65 +1,103 @@
 {
-  "version": "2.0.0",
-  "tasks": [
-    {
-      "label": "build",
-      "type": "shell",
-      "command": "dotnet",
-      "args": ["build", "backend/BiteTrack.sln", "-c", "Debug"],
-      "group": "build",
-      "problemMatcher": ["$msCompile"],
-      "presentation": { "reveal": "silent" }
-    },
-    {
-      "label": "frontend:dev:background",
-      "type": "shell",
-      "command": "npm",
-      "args": ["run", "dev"],
-      "options": { "cwd": "${workspaceFolder}/frontend" },
-      "isBackground": true,
-      "problemMatcher": {
-        "owner": "vite",
-        "fileLocation": ["relative", "${workspaceFolder}/frontend"],
-        "pattern": {
-          "regexp": ".*"
-        },
-        "background": {
-          "activeOnStart": true,
-          "beginsPattern": ".*vite.*starting.*",
-          "endsPattern": ".*ready in .*"
-        }
-      }
-    },
-    {
-      "label": "watch",
-      "type": "shell",
-      "command": "dotnet",
-      "args": [
-        "watch",
-        "run"
-      ],
-      "options": {
-        "cwd": "${workspaceFolder}/backend/src/BiteTrack.Api",
-        "env": {
-          "ASPNETCORE_ENVIRONMENT": "Development"
-        }
-      },
-      "isBackground": true,
-      "problemMatcher": ["$msCompile"],
-      "presentation": { "reveal": "always" }
-    },
-    {
-      "label": "open:browser",
-      "type": "shell",
-      "command": "explorer.exe",
-      "args": ["http://localhost:5173"],
-      "problemMatcher": []
-    },
-    {
-      "label": "dev:all",
-      "dependsOrder": "parallel",
-      "dependsOn": ["watch", "frontend:dev:background", "open:browser"],
-      "problemMatcher": []
-    }
-  ]
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/BiteTrack.sln",
+				"-c",
+				"Debug"
+			],
+			"group": "build",
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"presentation": {
+				"reveal": "silent"
+			}
+		},
+		{
+			"label": "frontend:dev:background",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"dev"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/frontend"
+			},
+			"isBackground": true,
+			"problemMatcher": {
+				"owner": "vite",
+				"fileLocation": [
+					"relative",
+					"${workspaceFolder}/frontend"
+				],
+				"pattern": {
+					"regexp": ".*"
+				},
+				"background": {
+					"activeOnStart": true,
+					"beginsPattern": ".*vite.*starting.*",
+					"endsPattern": ".*ready in .*"
+				}
+			}
+		},
+		{
+			"label": "watch",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"watch",
+				"run"
+			],
+			"options": {
+				"cwd": "${workspaceFolder}/backend/src/BiteTrack.Api",
+				"env": {
+					"ASPNETCORE_ENVIRONMENT": "Development"
+				}
+			},
+			"isBackground": true,
+			"problemMatcher": [
+				"$msCompile"
+			],
+			"presentation": {
+				"reveal": "always"
+			}
+		},
+		{
+			"label": "open:browser",
+			"type": "shell",
+			"command": "explorer.exe",
+			"args": [
+				"http://localhost:5173"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "dev:all",
+			"dependsOrder": "parallel",
+			"dependsOn": [
+				"watch",
+				"frontend:dev:background",
+				"open:browser"
+			],
+			"problemMatcher": []
+		},
+		{
+			"label": "build:api",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/src/BiteTrack.Api/BiteTrack.Api.csproj",
+				"-c",
+				"Debug"
+			]
+		}
+	]
 }
