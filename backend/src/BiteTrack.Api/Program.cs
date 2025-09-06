@@ -35,7 +35,16 @@ services.AddDbContext<AppDbContext>(opts =>
 
 services.AddScoped<AuthService>();
 services.AddScoped<MealService>();
-services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
+if (!string.IsNullOrWhiteSpace(config["PHOTOS_STORAGE_ACCOUNT_KEY"]))
+{
+    Console.WriteLine("[Photos] Using Azure Blob Storage for photo storage.");
+    services.AddSingleton<IPhotoStorage, AzureBlobPhotoStorage>();
+}
+else
+{
+    Console.WriteLine("[Photos] Using local file system for photo storage.");
+    services.AddSingleton<IPhotoStorage, LocalPhotoStorage>();
+}
 services.AddSingleton<IMealAnalysisQueue, InMemoryMealAnalysisQueue>();
 services.AddHostedService<MealAnalysisBackgroundService>();
 services.AddScoped<IAiMealAnalyzer, AzureOpenAiMealAnalyzer>();

@@ -14,7 +14,9 @@ public class MealService
 
     public async Task<Meal> CreateMealAsync(Guid userId, IFormFile photo, IPhotoStorage storage, IMealAnalysisQueue queue, DateTime? createdAtUtc = null)
     {
-        var fileName = $"{Guid.NewGuid()}{Path.GetExtension(photo.FileName)}";
+        var ext = Path.GetExtension(photo.FileName);
+        var safeExt = string.IsNullOrEmpty(ext) ? ".jpg" : ext;
+        var fileName = $"users/{userId}/" + Guid.NewGuid().ToString("N") + safeExt;
         var saved = await storage.SaveAsync(fileName, photo.OpenReadStream(), photo.ContentType);
         var meal = new Meal { UserId = userId, PhotoPath = saved.PhotoPath, ThumbnailPath = saved.ThumbnailPath, Status = MealStatus.Processing };
         if (createdAtUtc.HasValue)
@@ -64,24 +66,8 @@ public class MealService
         }
         _db.Meals.Remove(meal);
         await _db.SaveChangesAsync(ct);
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(photo))
-            {
-                var p = storage.ResolvePath(photo);
-                if (File.Exists(p)) File.Delete(p);
-            }
-        }
-        catch { }
-        try
-        {
-            if (!string.IsNullOrWhiteSpace(thumb))
-            {
-                var t = storage.ResolvePath(thumb);
-                if (File.Exists(t)) File.Delete(t);
-            }
-        }
-        catch { }
+        try { if (!string.IsNullOrWhiteSpace(photo)) await storage.DeleteAsync(photo, ct); } catch { }
+        try { if (!string.IsNullOrWhiteSpace(thumb)) await storage.DeleteAsync(thumb, ct); } catch { }
         return true;
     }
 }

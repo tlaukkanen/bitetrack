@@ -173,6 +173,7 @@ public interface IPhotoStorage
 {
     Task<(string PhotoPath, string ThumbnailPath)> SaveAsync(string fileName, Stream data, string contentType, CancellationToken ct = default);
     string ResolvePath(string storedPath);
+    Task DeleteAsync(string storedPath, CancellationToken ct = default);
 }
 
 public class LocalPhotoStorage : IPhotoStorage
@@ -186,8 +187,14 @@ public class LocalPhotoStorage : IPhotoStorage
     public async Task<(string PhotoPath, string ThumbnailPath)> SaveAsync(string fileName, Stream data, string contentType, CancellationToken ct = default)
     {
         var path = Path.Combine(_root, fileName);
-        var thumbName = Path.GetFileNameWithoutExtension(fileName) + "_thumb" + Path.GetExtension(fileName);
+        var dir = Path.GetDirectoryName(path);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        var baseName = Path.GetFileNameWithoutExtension(fileName);
+        var ext = Path.GetExtension(fileName);
+        var thumbName = (Path.GetDirectoryName(fileName)?.Replace('\\','/') is string d && !string.IsNullOrEmpty(d) ? d + "/" : string.Empty) + baseName + "_thumb" + ext;
         var thumbPath = Path.Combine(_root, thumbName);
+        var thumbDir = Path.GetDirectoryName(thumbPath);
+        if (!string.IsNullOrEmpty(thumbDir)) Directory.CreateDirectory(thumbDir);
         try
         {
             data.Position = 0;
@@ -224,6 +231,140 @@ public class LocalPhotoStorage : IPhotoStorage
         }
     }
     public string ResolvePath(string storedPath) => Path.Combine(_root, storedPath);
+
+    public Task DeleteAsync(string storedPath, CancellationToken ct = default)
+    {
+        try
+        {
+            var full = ResolvePath(storedPath);
+            if (File.Exists(full)) File.Delete(full);
+        }
+        catch { }
+        return Task.CompletedTask;
+    }
+}
+
+public class AzureBlobPhotoStorage : IPhotoStorage
+{
+    private readonly Azure.Storage.Blobs.BlobContainerClient _container;
+    private readonly string _cacheRoot;
+    public AzureBlobPhotoStorage(IConfiguration config)
+    {
+        var account = config.GetValue<string>("PHOTOS_STORAGE_ACCOUNT_NAME") ?? throw new InvalidOperationException("PHOTOS_STORAGE_ACCOUNT_NAME is required for Azure photo storage");
+        var key = config.GetValue<string>("PHOTOS_STORAGE_ACCOUNT_KEY") ?? throw new InvalidOperationException("PHOTOS_STORAGE_ACCOUNT_KEY is required for Azure photo storage");
+        var container = config.GetValue<string>("PHOTOS_STORAGE_ACCOUNT_CONTAINER") ?? "photos";
+        var service = new Azure.Storage.Blobs.BlobServiceClient(new Uri($"https://{account}.blob.core.windows.net"), new Azure.Storage.StorageSharedKeyCredential(account, key));
+        _container = service.GetBlobContainerClient(container);
+        _container.CreateIfNotExists();
+        _cacheRoot = Path.Combine(Path.GetTempPath(), "bitetrack-cache");
+        Directory.CreateDirectory(_cacheRoot);
+    }
+
+    public async Task<(string PhotoPath, string ThumbnailPath)> SaveAsync(string fileName, Stream data, string contentType, CancellationToken ct = default)
+    {
+        var blobName = fileName.Replace('\\','/');
+        var dir = Path.GetDirectoryName(blobName)?.Replace('\\','/');
+        var baseName = Path.GetFileNameWithoutExtension(blobName);
+        var ext = Path.GetExtension(blobName);
+        var thumbName = (string.IsNullOrEmpty(dir) ? string.Empty : dir + "/") + baseName + "_thumb" + ext;
+
+        try
+        {
+            data.Position = 0;
+            using var image = await Image.LoadAsync(data, ct);
+            image.Metadata.ExifProfile = null;
+            var maxDim = 512;
+            if (image.Width > maxDim || image.Height > maxDim)
+            {
+                var ratio = Math.Min((double)maxDim / image.Width, (double)maxDim / image.Height);
+                var newWidth = (int)Math.Round(image.Width * ratio);
+                var newHeight = (int)Math.Round(image.Height * ratio);
+                image.Mutate(x => x.Resize(newWidth, newHeight));
+            }
+
+            using var mainMs = new MemoryStream();
+            await SaveImageToStreamAsync(image, ext, mainMs, ct);
+            mainMs.Position = 0;
+            var mainBlob = _container.GetBlobClient(blobName);
+            await mainBlob.UploadAsync(mainMs, new Azure.Storage.Blobs.Models.BlobHttpHeaders { ContentType = contentType }, cancellationToken: ct);
+
+            using var thumbImage = image.Clone(x => { });
+            var tMax = 160;
+            if (thumbImage.Width > tMax || thumbImage.Height > tMax)
+            {
+                var ratioT = Math.Min((double)tMax / thumbImage.Width, (double)tMax / thumbImage.Height);
+                var tw = (int)Math.Round(thumbImage.Width * ratioT);
+                var th = (int)Math.Round(thumbImage.Height * ratioT);
+                thumbImage.Mutate(x => x.Resize(tw, th));
+            }
+            using var thumbMs = new MemoryStream();
+            await SaveImageToStreamAsync(thumbImage, ext, thumbMs, ct);
+            thumbMs.Position = 0;
+            var thumbBlob = _container.GetBlobClient(thumbName);
+            await thumbBlob.UploadAsync(thumbMs, new Azure.Storage.Blobs.Models.BlobHttpHeaders { ContentType = contentType }, cancellationToken: ct);
+
+            return (blobName, thumbName);
+        }
+        catch
+        {
+            try
+            {
+                data.Position = 0;
+                var mainBlob = _container.GetBlobClient(blobName);
+                await mainBlob.UploadAsync(data, new Azure.Storage.Blobs.Models.BlobHttpHeaders { ContentType = contentType }, cancellationToken: ct);
+                return (blobName, blobName);
+            }
+            catch
+            {
+                throw;
+            }
+        }
+    }
+
+    public string ResolvePath(string storedPath)
+    {
+        var local = Path.Combine(_cacheRoot, storedPath.Replace('/', Path.DirectorySeparatorChar));
+        var dir = Path.GetDirectoryName(local);
+        if (!string.IsNullOrEmpty(dir)) Directory.CreateDirectory(dir);
+        try
+        {
+            var blob = _container.GetBlobClient(storedPath);
+            blob.DownloadTo(local);
+        }
+        catch
+        {
+            // Ignore download failures here; caller can check File.Exists(local)
+        }
+        return local;
+    }
+
+    public async Task DeleteAsync(string storedPath, CancellationToken ct = default)
+    {
+        try
+        {
+            await _container.DeleteBlobIfExistsAsync(storedPath, cancellationToken: ct);
+        }
+        catch { }
+        try
+        {
+            var local = Path.Combine(_cacheRoot, storedPath.Replace('/', Path.DirectorySeparatorChar));
+            if (File.Exists(local)) File.Delete(local);
+        }
+        catch { }
+    }
+
+    private static Task SaveImageToStreamAsync(Image image, string ext, Stream target, CancellationToken ct)
+    {
+        SixLabors.ImageSharp.Formats.IImageEncoder e = (ext?.ToLowerInvariant()) switch
+        {
+            ".jpg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
+            ".jpeg" => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder(),
+            ".png" => new SixLabors.ImageSharp.Formats.Png.PngEncoder(),
+            ".webp" => new SixLabors.ImageSharp.Formats.Webp.WebpEncoder(),
+            _ => new SixLabors.ImageSharp.Formats.Jpeg.JpegEncoder()
+        };
+        return image.SaveAsync(target, e, ct);
+    }
 }
 
 public class MealAnalysisBackgroundService : BackgroundService
