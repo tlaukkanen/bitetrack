@@ -34,6 +34,7 @@ export default function MealDetail() {
   const [fat, setFat] = useState('');
   const [dtLocal, setDtLocal] = useState('');
   const [rotation, setRotation] = useState(0);
+  const [isRotating, setIsRotating] = useState(false);
 
   useEffect(() => {
     if (meal) {
@@ -194,7 +195,10 @@ export default function MealDetail() {
               <button
                 type="button"
                 onClick={async () => {
+                  if (isRotating) return;
+                  const before = rotation;
                   setRotation(r => (r + 270) % 360);
+                  setIsRotating(true);
                   try {
                     if (meal) {
                       const updated = await rotateMealImage(meal.id, 'left', 90);
@@ -203,13 +207,16 @@ export default function MealDetail() {
                       // refetch fresh image
                       const url = await fetchMealImage(updated.id, false, true);
                       setImageUrl(url);
+                      setRotation(0); // prevent double-rotation: server image already rotated
                       toast.success('Rotated left');
                     }
                   } catch (e) {
+                    setRotation(before);
                     toast.error('Failed to rotate');
-                  }
+                  } finally { setIsRotating(false); }
                 }}
-                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 flex items-center gap-1"
+                disabled={isRotating}
                 title="Rotate left 90°"
                 aria-label="Rotate left 90 degrees"
               >
@@ -218,7 +225,10 @@ export default function MealDetail() {
               <button
                 type="button"
                 onClick={async () => {
+                  if (isRotating) return;
+                  const before = rotation;
                   setRotation(r => (r + 90) % 360);
+                  setIsRotating(true);
                   try {
                     if (meal) {
                       const updated = await rotateMealImage(meal.id, 'right', 90);
@@ -226,13 +236,16 @@ export default function MealDetail() {
                       setImageUrl(null);
                       const url = await fetchMealImage(updated.id, false, true);
                       setImageUrl(url);
+                      setRotation(0);
                       toast.success('Rotated right');
                     }
                   } catch (e) {
+                    setRotation(before);
                     toast.error('Failed to rotate');
-                  }
+                  } finally { setIsRotating(false); }
                 }}
-                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 flex items-center gap-1"
+                className="text-xs px-2 py-1 rounded border border-gray-300 text-gray-700 hover:bg-gray-100 disabled:opacity-50 flex items-center gap-1"
+                disabled={isRotating}
                 title="Rotate right 90°"
                 aria-label="Rotate right 90 degrees"
               >
