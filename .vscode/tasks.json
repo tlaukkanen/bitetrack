@@ -109,6 +109,29 @@
 				"-c",
 				"Debug"
 			]
+		},
+		{
+			"label": "build:api",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/src/BiteTrack.Api/BiteTrack.Api.csproj",
+				"-c",
+				"Debug"
+			]
+		},
+		{
+			"label": "build",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/BiteTrack.sln",
+				"-c",
+				"Debug"
+			],
+			"group": "build"
 		}
 	]
 }

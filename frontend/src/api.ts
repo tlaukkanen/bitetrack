@@ -72,6 +72,11 @@ export async function updateMeal(id: string, req: UpdateMealRequest) {
   return r.data as MealDto;
 }
 
+export async function retryMealAnalysis(id: string) {
+  const r = await api.post(`/meals/${id}/retry`);
+  return r.data as MealDto;
+}
+
 export default api;
 
 export function mealImageUrl(id: string, thumb?: boolean) {

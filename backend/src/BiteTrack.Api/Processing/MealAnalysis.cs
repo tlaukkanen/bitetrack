@@ -96,7 +96,8 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
                             fat = new { type = new object[] { "number", "null" } },
                             confidence = new { type = new object[] { "number", "null" }, minimum = 0, maximum = 1 }
                         },
-                        required = new[] { "name" },
+                        // In strict schema mode, every defined property must be listed in 'required'.
+                        required = new[] { "name", "grams", "calories", "protein", "carbs", "fat", "confidence" },
                         additionalProperties = false
                     }
                 },

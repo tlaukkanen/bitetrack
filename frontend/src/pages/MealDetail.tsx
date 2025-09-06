@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useParams, Link } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMeal, MealDto, fetchMealImage, updateMeal } from '../api';
+import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis } from '../api';
 import { MacroCardGroup } from '../components/MacroCard';
 
 export default function MealDetail() {
@@ -59,6 +59,18 @@ export default function MealDetail() {
     }
   });
 
+  const retryMut = useMutation({
+    mutationFn: async () => {
+      if (!meal) throw new Error('No meal');
+      return retryMealAnalysis(meal.id);
+    },
+    onSuccess: (updated) => {
+      qc.setQueryData(['meal', updated.id], updated);
+      qc.invalidateQueries({ queryKey: ['summary'] });
+      qc.invalidateQueries({ queryKey: ['meals'] });
+    }
+  });
+
   useEffect(() => {
     if (!id) return;
     if (meal && meal.status !== 'Processing') return; // stop polling when terminal
@@ -112,7 +124,17 @@ export default function MealDetail() {
         )}
       </div>
       {meal.status === 'Processing' && <div className="text-xs text-gray-500 animate-pulse">Analyzing...</div>}
-      {meal.errorMessage && <div className="text-sm text-red-600">Error: {meal.errorMessage}</div>}
+      {meal.errorMessage && (
+        <div className="text-sm text-red-600 flex items-center gap-2">
+          <span>Error: {meal.errorMessage}</span>
+          <button
+            onClick={() => retryMut.mutate()}
+            disabled={retryMut.isPending}
+            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded disabled:opacity-50">
+            {retryMut.isPending ? 'Retrying…' : 'Retry analysis'}
+          </button>
+        </div>
+      )}
       {!edit && meal.description && <div className="text-sm">{meal.description}</div>}
       {edit && (
         <div className="space-y-2 border rounded p-3 bg-gray-50">

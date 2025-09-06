@@ -8,7 +8,7 @@ export function MealCard({ meal }: { meal: MealDto }) {
   <Link to={`/meal/${meal.id}`} className="block p-3 rounded-lg bg-white shadow-sm border">
       <div className="flex gap-3">
         <MealThumb meal={meal} />
-        <div className="flex-1 flex flex-col justify-between min-h-[5rem]">
+        <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[5rem]">
           <div className="flex justify-between text-xs text-gray-600">
             <span>{new Date(meal.createdAtUtc).toLocaleTimeString()}</span>
             <span>{meal.status}</span>

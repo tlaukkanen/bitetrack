@@ -59,6 +59,20 @@ public static class MealsEndpoints
             return meal is null ? Results.NotFound() : Results.Ok(MealDto.FromEntity(meal));
         });
 
+        group.MapPost("/{id:guid}/retry", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, Guid id, IMealAnalysisQueue queue) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty) return Results.Unauthorized();
+            var meal = await meals.GetMealAsync(userId, id);
+            if (meal is null) return Results.NotFound();
+            meal.Status = BiteTrack.Api.Domain.MealStatus.Processing;
+            meal.ErrorMessage = null;
+            meal.UpdatedAtUtc = DateTime.UtcNow;
+            await meals.SaveChangesAsync();
+            await queue.EnqueueAsync(new MealAnalysisRequest(meal.Id));
+            return Results.Ok(MealDto.FromEntity(meal));
+        });
+
         group.MapPut("/{id:guid}", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, Guid id, UpdateMealRequest req) =>
         {
             var userId = user.GetUserId();
