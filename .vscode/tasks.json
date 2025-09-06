@@ -132,6 +132,44 @@
 				"Debug"
 			],
 			"group": "build"
+		},
+		{
+			"label": "build:api:ad-hoc",
+			"type": "shell",
+			"command": "dotnet",
+			"args": [
+				"build",
+				"backend/src/BiteTrack.Api/BiteTrack.Api.csproj",
+				"-c",
+				"Debug"
+			]
+		},
+		{
+			"label": "build:frontend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "build:frontend:ad-hoc",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
+		},
+		{
+			"label": "build:frontend:from-frontend",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
 		}
 	]
 }

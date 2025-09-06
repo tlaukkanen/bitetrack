@@ -51,4 +51,37 @@ public class MealService
     }
 
     public Task<int> SaveChangesAsync() => _db.SaveChangesAsync();
+
+    public async Task<bool> DeleteMealAsync(Guid userId, Guid id, IPhotoStorage storage, CancellationToken ct = default)
+    {
+        var meal = await _db.Meals.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == id && m.UserId == userId, ct);
+        if (meal == null) return false;
+        var photo = meal.PhotoPath;
+        var thumb = meal.ThumbnailPath;
+        if (meal.Items.Count > 0)
+        {
+            _db.MealFoodItems.RemoveRange(meal.Items);
+        }
+        _db.Meals.Remove(meal);
+        await _db.SaveChangesAsync(ct);
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(photo))
+            {
+                var p = storage.ResolvePath(photo);
+                if (File.Exists(p)) File.Delete(p);
+            }
+        }
+        catch { }
+        try
+        {
+            if (!string.IsNullOrWhiteSpace(thumb))
+            {
+                var t = storage.ResolvePath(thumb);
+                if (File.Exists(t)) File.Delete(t);
+            }
+        }
+        catch { }
+        return true;
+    }
 }

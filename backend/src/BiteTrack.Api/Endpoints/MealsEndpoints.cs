@@ -109,6 +109,14 @@ public static class MealsEndpoints
             return Results.File(full, contentType);
         });
 
+        group.MapDelete("/{id:guid}", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, IPhotoStorage storage, Guid id) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty) return Results.Unauthorized();
+            var ok = await meals.DeleteMealAsync(userId, id, storage);
+            return ok ? Results.NoContent() : Results.NotFound();
+        });
+
         return app;
     }
 }

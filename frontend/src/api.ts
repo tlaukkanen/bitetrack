@@ -77,6 +77,10 @@ export async function retryMealAnalysis(id: string) {
   return r.data as MealDto;
 }
 
+export async function deleteMeal(id: string): Promise<void> {
+  await api.delete(`/meals/${id}`);
+}
+
 export default api;
 
 export function mealImageUrl(id: string, thumb?: boolean) {

@@ -1,16 +1,25 @@
-import React, { useEffect, useState } from 'react';
-import { useParams, Link } from 'react-router-dom';
+import React, { useEffect, useRef, useState } from 'react';
+import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis } from '../api';
+import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal } from '../api';
+import { FiTrash2 } from 'react-icons/fi';
 import { MacroCardGroup } from '../components/MacroCard';
 
 export default function MealDetail() {
   const { id } = useParams<{ id: string }>();
+  const navigate = useNavigate();
+  const touchStartRef = useRef<{ x: number; y: number; t: number } | null>(null);
 
   const mealQuery = useQuery({
     queryKey: ['meal', id],
     queryFn: () => getMeal(id!),
     enabled: !!id
+  });
+
+  // Fetch user's macro goals for percentage indicators
+  const { data: goal } = useQuery({
+    queryKey: ['goal'],
+    queryFn: () => getGoal()
   });
 
   const meal = mealQuery.data as MealDto | undefined;
@@ -71,6 +80,18 @@ export default function MealDetail() {
     }
   });
 
+  const deleteMut = useMutation({
+    mutationFn: async () => {
+      if (!meal) throw new Error('No meal');
+      return deleteMeal(meal.id);
+    },
+    onSuccess: () => {
+      qc.invalidateQueries({ queryKey: ['summary'] });
+      qc.invalidateQueries({ queryKey: ['meals'] });
+      navigate('/');
+    }
+  });
+
   useEffect(() => {
     if (!id) return;
     if (meal && meal.status !== 'Processing') return; // stop polling when terminal
@@ -103,7 +124,29 @@ export default function MealDetail() {
   const imgSrc = imageUrl || '';
 
   return (
-    <div className="p-4 space-y-4">
+    <div
+      className="p-4 space-y-4"
+      onTouchStart={(e) => {
+        const t = e.touches[0];
+        touchStartRef.current = { x: t.clientX, y: t.clientY, t: Date.now() };
+      }}
+      onTouchEnd={(e) => {
+        const start = touchStartRef.current;
+        touchStartRef.current = null;
+        if (!start) return;
+        const t = e.changedTouches[0];
+        const dx = t.clientX - start.x;
+        const dy = Math.abs(t.clientY - start.y);
+        const dt = Date.now() - start.t;
+        const isFromLeftEdge = start.x <= 24; // left-edge gesture
+        const horizontalEnough = dx > 64; // swipe right threshold
+        const verticalSmall = dy < 40;
+        const fastEnough = dt < 800; // quick gesture
+        if (isFromLeftEdge && horizontalEnough && verticalSmall && fastEnough) {
+          navigate('/');
+        }
+      }}
+    >
       {(() => {
         const created = new Date(meal.createdAtUtc);
         const now = new Date();
@@ -113,7 +156,24 @@ export default function MealDetail() {
         return (
           <div className="flex items-baseline justify-between gap-4">
             <h1 className="text-xl font-bold">Meal</h1>
-            <div className="text-xs text-gray-500 whitespace-nowrap">{friendly}</div>
+            <div className="flex items-center gap-3">
+              <div className="text-xs text-gray-500 whitespace-nowrap">{friendly}</div>
+              {meal.status !== 'Processing' && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (deleteMut.isPending) return;
+                    const c = window.confirm('Delete this meal? This cannot be undone.');
+                    if (c) deleteMut.mutate();
+                  }}
+                  className="text-gray-500 hover:text-red-600 focus:outline-none"
+                  aria-label="Delete meal"
+                  title="Delete meal"
+                >
+                  <FiTrash2 size={18} />
+                </button>
+              )}
+            </div>
           </div>
         );
       })()}
@@ -124,6 +184,9 @@ export default function MealDetail() {
         )}
       </div>
       {meal.status === 'Processing' && <div className="text-xs text-gray-500 animate-pulse">Analyzing...</div>}
+      {deleteMut.isError && (
+        <div className="text-xs text-red-600">Error deleting meal</div>
+      )}
       {meal.errorMessage && (
         <div className="text-sm text-red-600 flex items-center gap-2">
           <span>Error: {meal.errorMessage}</span>
@@ -158,7 +221,16 @@ export default function MealDetail() {
         </div>
       )}
       <div>
-        <MacroCardGroup calories={meal.calories} protein={meal.protein} carbs={meal.carbs} fat={meal.fat} />
+        <MacroCardGroup
+          calories={meal.calories}
+          protein={meal.protein}
+          carbs={meal.carbs}
+          fat={meal.fat}
+          caloriesGoal={goal?.calories ?? null}
+          proteinGoal={goal?.protein ?? null}
+          carbsGoal={goal?.carbs ?? null}
+          fatGoal={goal?.fat ?? null}
+        />
       </div>
       {meal.items.length > 0 && (
         <div className="space-y-1">
@@ -171,7 +243,14 @@ export default function MealDetail() {
         </div>
       )}
       <div className="text-sm font-medium">Total: {meal.calories ? Math.round(meal.calories) + ' kcal' : '?'}</div>
-      <Link to="/" className="text-brand2 text-sm underline">Back</Link>
+      <button
+        type="button"
+        onClick={() => navigate('/')}
+        className="text-brand2 text-sm underline"
+        aria-label="Back to dashboard"
+      >
+        Back
+      </button>
     </div>
   );
 }
