@@ -9,6 +9,7 @@ import Login from './pages/Login';
 import MealDetail from './pages/MealDetail';
 import Goal from './pages/Goal';
 import Profile from './pages/Profile';
+import Promo from './pages/Promo';
 import { MdAdd } from 'react-icons/md';
 import { initToken } from './api';
 import { Header } from './components/Header';
@@ -18,6 +19,14 @@ import { Toaster } from 'react-hot-toast';
 initToken();
 
 const qc = new QueryClient();
+
+function AuthenticatedFrame({ children }: { children: React.ReactElement }) {
+  return (
+    <div className="pt-2 pb-24 max-w-md mx-auto min-h-screen">
+      {children}
+    </div>
+  );
+}
 
 function NavBar() {
   const navigate = useNavigate();
@@ -71,13 +80,10 @@ function RequireAuth({ children }: { children: React.ReactElement }) {
   const location = useLocation();
   const hasToken = !!localStorage.getItem('token');
   React.useEffect(() => {
-    if (!hasToken) {
-      // Avoid infinite redirect loop if already on login
-      if (location.pathname !== '/login') navigate('/login');
-    }
+    // No redirect; when not logged in, we show Promo instead.
   }, [hasToken, location.pathname, navigate]);
   if (!hasToken && location.pathname !== '/login') {
-    return null; // Render nothing while redirecting
+    return <Promo />;
   }
   return children;
 }
@@ -89,14 +95,14 @@ function App() {
         <Header />
         <NavBar />
         <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
-        <div className="pt-2 pb-24 max-w-md mx-auto bg-gray-50 min-h-screen">
+        <div className="bg-gray-50 min-h-screen">
           <Routes>
-            <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
-            <Route path="/meals/:date" element={<RequireAuth><Dashboard /></RequireAuth>} />
-            <Route path="/add" element={<RequireAuth><AddMeal /></RequireAuth>} />
-            <Route path="/goal" element={<RequireAuth><Goal /></RequireAuth>} />
-            <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />
-            <Route path="/meal/:id" element={<RequireAuth><MealDetail /></RequireAuth>} />
+            <Route path="/" element={<RequireAuth><AuthenticatedFrame><Dashboard /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/meals/:date" element={<RequireAuth><AuthenticatedFrame><Dashboard /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/add" element={<RequireAuth><AuthenticatedFrame><AddMeal /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/goal" element={<RequireAuth><AuthenticatedFrame><Goal /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/profile" element={<RequireAuth><AuthenticatedFrame><Profile /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/meal/:id" element={<RequireAuth><AuthenticatedFrame><MealDetail /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/login" element={<Login />} />
           </Routes>
         </div>
