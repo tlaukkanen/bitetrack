@@ -1,10 +1,11 @@
 import React from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 // Removed direct logout import; using hook instead
 import { useAuthToken } from '../hooks/useAuthToken';
 
 export function Header() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { hasToken, logout } = useAuthToken();
   const [open, setOpen] = React.useState(false);
   const menuRef = React.useRef<HTMLDivElement | null>(null);
@@ -26,9 +27,11 @@ export function Header() {
     navigate('/login');
   }
 
+  const wideRoutes = ['/promo', '/pricing'];
+  const isWide = wideRoutes.some(p => location.pathname.startsWith(p));
   return (
     <header className="sticky top-0 z-10 bg-white border-b shadow-sm">
-      <div className="max-w-md mx-auto flex items-center justify-between px-4 py-2 relative">
+      <div className={`${isWide ? 'max-w-4xl' : 'max-w-md'} mx-auto flex items-center justify-between px-4 py-2 relative`}>
         <button
           type="button"
           onClick={() => navigate('/')}

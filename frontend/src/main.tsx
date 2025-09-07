@@ -10,6 +10,7 @@ import MealDetail from './pages/MealDetail';
 import Goal from './pages/Goal';
 import Profile from './pages/Profile';
 import Promo from './pages/Promo';
+import Pricing from './pages/Pricing';
 import { MdAdd } from 'react-icons/md';
 import { initToken } from './api';
 import { Header } from './components/Header';
@@ -103,6 +104,8 @@ function App() {
             <Route path="/goal" element={<RequireAuth><AuthenticatedFrame><Goal /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><AuthenticatedFrame><Profile /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/meal/:id" element={<RequireAuth><AuthenticatedFrame><MealDetail /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/promo" element={<Promo />} />
+            <Route path="/pricing" element={<Pricing />} />
             <Route path="/login" element={<Login />} />
           </Routes>
         </div>
