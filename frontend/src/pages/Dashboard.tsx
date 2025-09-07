@@ -5,10 +5,14 @@ import { DailySummaryCard } from '../components/DailySummaryCard';
 import { MealCard } from '../components/MealCard';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
 
 export default function Dashboard() {
-  const [selectedDate, setSelectedDate] = React.useState<Date>(new Date());
+  const navigate = useNavigate();
+  const location = useLocation();
+  const { date: routeDate } = useParams<{ date?: string }>();
+  // Initialize from route date when present
+  const [selectedDate, setSelectedDate] = React.useState<Date>(() => routeDate ? parseDate(routeDate) ?? new Date() : new Date());
   const today = React.useMemo(() => new Date(), []);
   const isToday = sameDay(selectedDate, today);
   const dateStr = React.useMemo(() => formatDate(selectedDate), [selectedDate]);
@@ -28,6 +32,28 @@ export default function Dashboard() {
     refetchInterval: isToday ? 15000 : false
   });
   const isAnyLoading = isSummaryLoading || isGoalLoading || isMealsLoading;
+
+  // Keep URL in sync when selectedDate changes
+  React.useEffect(() => {
+    const pathForDate = (d: Date) => `/meals/${formatDate(d)}`;
+    if (sameDay(selectedDate, today)) {
+      if (location.pathname !== '/') navigate('/', { replace: false });
+    } else {
+      const target = pathForDate(selectedDate);
+      if (location.pathname !== target) navigate(target, { replace: false });
+    }
+  }, [selectedDate]);
+
+  // Update selected date if user navigates via address bar/back/forward
+  React.useEffect(() => {
+    if (!routeDate) {
+      if (!sameDay(selectedDate, today)) setSelectedDate(new Date());
+    } else {
+      const d = parseDate(routeDate);
+      if (d && !sameDay(d, selectedDate)) setSelectedDate(d);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [routeDate]);
 
   // Listen for global 'gotoToday' events triggered by nav
   React.useEffect(() => {
@@ -138,4 +164,16 @@ function formatDate(d: Date) {
 }
 function formatHeading(d: Date) {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+}
+
+function parseDate(s?: string): Date | null {
+  if (!s) return null;
+  const m = /^\d{4}-\d{2}-\d{2}$/.exec(s);
+  if (!m) return null;
+  const [y, mo, d] = s.split('-').map(n => parseInt(n, 10));
+  if (!y || !mo || !d) return null;
+  const dt = new Date(y, mo - 1, d);
+  // Ensure date components match (avoid invalid like 2025-02-31)
+  if (dt.getFullYear() !== y || dt.getMonth() !== mo - 1 || dt.getDate() !== d) return null;
+  return dt;
 }

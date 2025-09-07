@@ -92,6 +92,7 @@ function App() {
         <div className="pt-2 pb-24 max-w-md mx-auto bg-gray-50 min-h-screen">
           <Routes>
             <Route path="/" element={<RequireAuth><Dashboard /></RequireAuth>} />
+            <Route path="/meals/:date" element={<RequireAuth><Dashboard /></RequireAuth>} />
             <Route path="/add" element={<RequireAuth><AddMeal /></RequireAuth>} />
             <Route path="/goal" element={<RequireAuth><Goal /></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><Profile /></RequireAuth>} />

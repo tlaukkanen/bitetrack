@@ -99,7 +99,7 @@ export default function MealDetail() {
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['meals'] });
       toast.success('Meal deleted');
-      navigate('/');
+      navigate(meal ? toBackPath(meal.createdAtUtc) : '/');
     }
   });
 
@@ -133,6 +133,19 @@ export default function MealDetail() {
   if (!meal) return <div className="p-4">Meal not found.</div>;
 
   const imgSrc = imageUrl || '';
+  const toLocalDatePath = (isoUtc: string) => {
+    const d = new Date(isoUtc);
+    const y = d.getFullYear();
+    const m = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `/meals/${y}-${m}-${day}`;
+  };
+  const toBackPath = (isoUtc: string) => {
+    const d = new Date(isoUtc);
+    const now = new Date();
+    const sameDay = d.getFullYear() === now.getFullYear() && d.getMonth() === now.getMonth() && d.getDate() === now.getDate();
+    return sameDay ? '/' : toLocalDatePath(isoUtc);
+  };
 
   return (
     <div
@@ -154,7 +167,8 @@ export default function MealDetail() {
         const verticalSmall = dy < 40;
         const fastEnough = dt < 800; // quick gesture
         if (isFromLeftEdge && horizontalEnough && verticalSmall && fastEnough) {
-          navigate('/');
+          const target = meal ? toBackPath(meal.createdAtUtc) : '/';
+          navigate(target);
         }
       }}
     >
@@ -328,7 +342,7 @@ export default function MealDetail() {
       <div className="text-sm font-medium">Total: {meal.calories ? Math.round(meal.calories) + ' kcal' : '?'}</div>
         <button
           type="button"
-          onClick={() => navigate('/')}
+          onClick={() => navigate(meal ? toBackPath(meal.createdAtUtc) : '/')}
           className="text-emerald-600 text-sm underline"
           aria-label="Back to dashboard"
         >
