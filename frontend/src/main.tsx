@@ -34,26 +34,32 @@ function NavBar() {
   };
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20 pb-[env(safe-area-inset-bottom)]">
-      <div className="max-w-md mx-auto flex justify-around items-center py text-base px-4">
-        <a
-          href="#today"
-          onClick={handleToday}
-          className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-emerald-600"
-        >
-          Today
-        </a>
-        <Link
-          to="/add"
-          aria-label="Add meal"
-          className="w-12 h-12 -mt-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
-        >
-          <MdAdd size={28} />
-        </Link>
-        {hasToken ? (
-          <Link to="/goal" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">My Goal</Link>
-        ) : (
-          <Link to="/login" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">Login</Link>
-        )}
+      <div className="max-w-md mx-auto flex items-center py text-base px-4">
+        <div className="flex-1 flex justify-start">
+          <a
+            href="#today"
+            onClick={handleToday}
+            className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-emerald-600"
+          >
+            Today
+          </a>
+        </div>
+        <div className="flex-1 flex justify-center">
+          <Link
+            to="/add"
+            aria-label="Add meal"
+            className="w-12 h-12 -mt-8 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
+          >
+            <MdAdd size={28} />
+          </Link>
+        </div>
+        <div className="flex-1 flex justify-end">
+          {hasToken ? (
+            <Link to="/goal" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">My Goal</Link>
+          ) : (
+            <Link to="/login" className="inline-flex items-center justify-center h-11 px-4 rounded-md font-semibold text-gray-700">Login</Link>
+          )}
+        </div>
       </div>
     </nav>
   );

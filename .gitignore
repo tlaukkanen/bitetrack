@@ -63,3 +63,4 @@ CodeCoverage/
 TestResult.xml
 nunit-*.xml
 /backend/src/BiteTrack.Api/wwwroot/assets/*
+local.settings.json

@@ -263,7 +263,7 @@ export default function MealDetail() {
       )}
       <div className="text-sm text-gray-600 flex justify-between items-center">Status: {meal.status}
         {meal.status !== 'Processing' && (
-          <button onClick={()=>setEdit(e=>!e)} className="text-xs text-brand2 underline ml-2">{edit ? 'Cancel' : 'Edit'}</button>
+          <button onClick={()=>setEdit(e=>!e)} className="text-xs text-emerald-600 underline ml-2">{edit ? 'Cancel' : 'Edit'}</button>
         )}
       </div>
       {meal.status === 'Processing' && <div className="text-xs text-gray-500 animate-pulse">Analyzing...</div>}
@@ -299,7 +299,7 @@ export default function MealDetail() {
             <div><label className="block">C</label><input type="number" className="w-full border rounded px-1 py-0.5" value={carb} onChange={e=>setCarb(e.target.value)} /></div>
             <div><label className="block">F</label><input type="number" className="w-full border rounded px-1 py-0.5" value={fat} onChange={e=>setFat(e.target.value)} /></div>
           </div>
-          <button disabled={updateMut.isPending} onClick={()=>updateMut.mutate()} className="bg-brand2 text-white rounded px-3 py-1 text-sm disabled:opacity-50">{updateMut.isPending ? 'Saving...' : 'Save Changes'}</button>
+            <button disabled={updateMut.isPending} onClick={()=>updateMut.mutate()} className="bg-emerald-600 text-white rounded px-3 py-1 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">{updateMut.isPending ? 'Saving...' : 'Save Changes'}</button>
           {updateMut.isError && <div className="text-xs text-red-600">Error updating meal</div>}
         </div>
       )}
@@ -326,14 +326,14 @@ export default function MealDetail() {
         </div>
       )}
       <div className="text-sm font-medium">Total: {meal.calories ? Math.round(meal.calories) + ' kcal' : '?'}</div>
-      <button
-        type="button"
-        onClick={() => navigate('/')}
-        className="text-brand2 text-sm underline"
-        aria-label="Back to dashboard"
-      >
-        Back
-      </button>
+        <button
+          type="button"
+          onClick={() => navigate('/')}
+          className="text-emerald-600 text-sm underline"
+          aria-label="Back to dashboard"
+        >
+          Back
+        </button>
     </div>
   );
 }

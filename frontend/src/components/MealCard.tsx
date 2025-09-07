@@ -10,8 +10,14 @@ export function MealCard({ meal }: { meal: MealDto }) {
         <MealThumb meal={meal} />
         <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[5rem]">
           <div className="flex justify-between text-xs text-gray-600">
-            <span>{new Date(meal.createdAtUtc).toLocaleTimeString()}</span>
-            <span>{meal.status}</span>
+            <span>
+              {new Date(meal.createdAtUtc).toLocaleTimeString([], {
+                hour: '2-digit',
+                minute: '2-digit',
+                // hour12: false
+              })}
+            </span>
+            <span>{meal.status !== 'Ready' && meal.status}</span>
           </div>
           {meal.description && meal.status !== 'Error' && (
             <div className="text-xs text-gray-700 mt-0.5 line-clamp-1 truncate" title={meal.description}>{meal.description}</div>
@@ -19,10 +25,19 @@ export function MealCard({ meal }: { meal: MealDto }) {
           {meal.status === 'Ready' && (
             <div className="mt-1 text-xs flex items-end justify-between gap-3">
               <span className="font-semibold text-sm">{meal.calories} kcal</span>
-              <div className="flex gap-3">
-                <span><span className="text-gray-500">P</span> <span className="font-semibold">{meal.protein}</span></span>
-                <span><span className="text-gray-500">C</span> <span className="font-semibold">{meal.carbs}</span></span>
-                <span><span className="text-gray-500">F</span> <span className="font-semibold">{meal.fat}</span></span>
+              <div className="flex gap-2">
+                <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">
+                  <span className="opacity-80 mr-1">P</span>
+                  <span className="font-semibold">{Math.round(meal.protein ?? 0)}</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-yellow-400 text-black leading-none">
+                  <span className="opacity-80 mr-1">C</span>
+                  <span className="font-semibold">{Math.round(meal.carbs ?? 0)}</span>
+                </span>
+                <span className="px-2 py-0.5 rounded-full bg-orange-400 text-white leading-none">
+                  <span className="opacity-80 mr-1">F</span>
+                  <span className="font-semibold">{Math.round(meal.fat ?? 0)}</span>
+                </span>
               </div>
             </div>
           )}
