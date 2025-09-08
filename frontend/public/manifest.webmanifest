@@ -8,5 +8,19 @@
   "description": "Track meals and macros easily.",
   "icons": [
     { "src": "/icons/logo-128.png", "sizes": "128x128", "type": "image/png" }
+  ],
+  "shortcuts": [
+    {
+      "name": "Add Meal",
+      "short_name": "Add Meal",
+      "url": "/add-meal",
+      "icons": [{ "src": "/icons/add-meal.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "View Summary",
+      "short_name": "Summary",
+      "url": "/summary",
+      "icons": [{ "src": "/icons/summary.png", "sizes": "96x96", "type": "image/png" }]
+    }
   ]
 }

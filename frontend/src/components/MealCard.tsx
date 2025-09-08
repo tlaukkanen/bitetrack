@@ -9,7 +9,7 @@ export function MealCard({ meal }: { meal: MealDto }) {
       <div className="flex gap-3">
         <MealThumb meal={meal} />
         <div className="flex-1 min-w-0 flex flex-col justify-between min-h-[5rem]">
-          <div className="flex justify-between text-xs text-gray-600">
+          <div className="flex justify-between items-baseline text-xs text-gray-600">
             <span>
               {new Date(meal.createdAtUtc).toLocaleTimeString([], {
                 hour: '2-digit',
@@ -17,14 +17,17 @@ export function MealCard({ meal }: { meal: MealDto }) {
                 // hour12: false
               })}
             </span>
-            <span>{meal.status !== 'Ready' && meal.status}</span>
+            {meal.status === 'Ready' ? (
+              <span className="font-semibold text-sm text-gray-900">{meal.calories} kcal</span>
+            ) : (
+              <span>{meal.status}</span>
+            )}
           </div>
           {meal.description && meal.status !== 'Error' && (
             <div className="text-xs text-gray-700 mt-0.5 line-clamp-1 truncate" title={meal.description}>{meal.description}</div>
           )}
           {meal.status === 'Ready' && (
-            <div className="mt-1 text-xs flex items-end justify-between gap-3">
-              <span className="font-semibold text-sm">{meal.calories} kcal</span>
+            <div className="mt-1 text-xs flex items-end justify-end">
               <div className="flex gap-2">
                 <span className="px-2 py-0.5 rounded-full bg-emerald-500 text-white leading-none">
                   <span className="opacity-80 mr-1">P</span>

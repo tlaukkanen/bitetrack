@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage } from '../api';
+import api, { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage, uploadMeal } from '../api';
 import toast from 'react-hot-toast';
 import { FiTrash2, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
 import { MacroCardGroup } from '../components/MacroCard';
@@ -100,6 +100,37 @@ export default function MealDetail() {
       qc.invalidateQueries({ queryKey: ['meals'] });
       toast.success('Meal deleted');
       navigate(meal ? toBackPath(meal.createdAtUtc) : '/');
+    }
+  });
+
+  const duplicateMut = useMutation({
+    mutationFn: async () => {
+      if (!meal) throw new Error('No meal');
+      if (!meal.photoPath) throw new Error('No photo to duplicate');
+      const resp = await api.get(`/meals/${meal.id}/image`, { responseType: 'blob', params: { _: Date.now() } });
+      const blob: Blob = resp.data;
+      const file = new File([blob], `meal-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
+      const newMeal = await uploadMeal(file, new Date());
+      const payload: any = {};
+      if (meal.description) payload.description = meal.description;
+      if (meal.calories != null) payload.calories = meal.calories;
+      if (meal.protein != null) payload.protein = meal.protein;
+      if (meal.carbs != null) payload.carbs = meal.carbs;
+      if (meal.fat != null) payload.fat = meal.fat;
+      if (Object.keys(payload).length > 0) {
+        try { await updateMeal(newMeal.id, payload); } catch {}
+      }
+      return newMeal;
+    },
+    onSuccess: (newMeal) => {
+      qc.setQueryData(['meal', newMeal.id], newMeal);
+      qc.invalidateQueries({ queryKey: ['summary'] });
+      qc.invalidateQueries({ queryKey: ['meals'] });
+      toast.success('Meal duplicated to today');
+      navigate('/');
+    },
+    onError: () => {
+      toast.error('Failed to duplicate meal');
     }
   });
 
@@ -340,14 +371,26 @@ export default function MealDetail() {
         </div>
       )}
       <div className="text-sm font-medium">Total: {meal.calories ? Math.round(meal.calories) + ' kcal' : '?'}</div>
+      <div className="mt-3 flex flex-col sm:flex-row gap-3">
         <button
           type="button"
           onClick={() => navigate(meal ? toBackPath(meal.createdAtUtc) : '/')}
-          className="text-emerald-600 text-sm underline"
-          aria-label="Back to dashboard"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-white text-emerald-700 font-semibold shadow-sm border border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200 active:scale-[0.99] transition"
+          aria-label="Back"
         >
           Back
         </button>
+        <button
+          type="button"
+          onClick={() => duplicateMut.mutate()}
+          disabled={duplicateMut.isPending}
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-emerald-600 text-white font-semibold shadow-sm border border-emerald-700 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition disabled:opacity-60"
+          aria-label="Duplicate meal to today"
+          title="Duplicate meal to today"
+        >
+          {duplicateMut.isPending ? 'Duplicating…' : 'Duplicate to Today'}
+        </button>
+      </div>
     </div>
   );
 }
