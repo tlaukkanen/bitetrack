@@ -199,6 +199,9 @@ public class LocalPhotoStorage : IPhotoStorage
         {
             data.Position = 0;
             using var image = await Image.LoadAsync(data, ct);
+            // Apply EXIF orientation so the pixel data matches how cameras intended the image to be viewed
+            image.Mutate(x => x.AutoOrient());
+            // Strip EXIF after applying orientation to avoid downstream double-rotation
             image.Metadata.ExifProfile = null;
             var maxDim = 512;
             if (image.Width > maxDim || image.Height > maxDim)
@@ -272,6 +275,8 @@ public class AzureBlobPhotoStorage : IPhotoStorage
         {
             data.Position = 0;
             using var image = await Image.LoadAsync(data, ct);
+            // Apply EXIF orientation then strip EXIF to persist correct orientation
+            image.Mutate(x => x.AutoOrient());
             image.Metadata.ExifProfile = null;
             var maxDim = 512;
             if (image.Width > maxDim || image.Height > maxDim)

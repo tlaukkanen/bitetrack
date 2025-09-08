@@ -2,6 +2,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
 import api, { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage, uploadMeal } from '../api';
+import Spinner from '../components/Spinner';
 import toast from 'react-hot-toast';
 import { FiTrash2, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
 import { MacroCardGroup } from '../components/MacroCard';
@@ -33,6 +34,7 @@ export default function MealDetail() {
   const [carb, setCarb] = useState('');
   const [fat, setFat] = useState('');
   const [dtLocal, setDtLocal] = useState('');
+  const [dtLocalOrig, setDtLocalOrig] = useState('');
   const [rotation, setRotation] = useState(0);
   const [isRotating, setIsRotating] = useState(false);
 
@@ -48,6 +50,7 @@ export default function MealDetail() {
       const pad = (n: number) => String(n).padStart(2,'0');
       const local = `${d.getFullYear()}-${pad(d.getMonth()+1)}-${pad(d.getDate())}T${pad(d.getHours())}:${pad(d.getMinutes())}`;
       setDtLocal(local);
+      setDtLocalOrig(local);
       setRotation(0);
     }
   }, [meal?.id, meal?.status]);
@@ -59,14 +62,18 @@ export default function MealDetail() {
   const updateMut = useMutation({
     mutationFn: async () => {
       if (!meal) throw new Error('No meal');
-      return updateMeal(meal.id, {
+      const payload: any = {
         description: desc.trim() || null,
         calories: cal ? parseInt(cal) : null,
         protein: pro ? parseFloat(pro) : null,
         carbs: carb ? parseFloat(carb) : null,
         fat: fat ? parseFloat(fat) : null
-        , createdAtUtc: dtLocal ? new Date(dtLocal).toISOString() : null
-      });
+      };
+      // Only update createdAtUtc if user changed the datetime
+      if (dtLocal && dtLocal !== dtLocalOrig) {
+        payload.createdAtUtc = new Date(dtLocal).toISOString();
+      }
+      return updateMeal(meal.id, payload);
     },
     onSuccess: (updated) => {
       qc.setQueryData(['meal', updated.id], updated);
@@ -127,7 +134,7 @@ export default function MealDetail() {
       qc.invalidateQueries({ queryKey: ['summary'] });
       qc.invalidateQueries({ queryKey: ['meals'] });
       toast.success('Meal duplicated to today');
-      navigate('/');
+      navigate(`/meal/${newMeal.id}`);
     },
     onError: () => {
       toast.error('Failed to duplicate meal');
@@ -265,7 +272,7 @@ export default function MealDetail() {
                 title="Rotate left 90°"
                 aria-label="Rotate left 90 degrees"
               >
-                <FiRotateCcw /> Left
+                {isRotating ? (<><Spinner size={14} title="Rotating" /><span>Rotating…</span></>) : (<><FiRotateCcw /><span>Left</span></>)}
               </button>
               <button
                 type="button"
@@ -294,7 +301,7 @@ export default function MealDetail() {
                 title="Rotate right 90°"
                 aria-label="Rotate right 90 degrees"
               >
-                <FiRotateCw /> Right
+                {isRotating ? (<><Spinner size={14} title="Rotating" /><span>Rotating…</span></>) : (<><FiRotateCw /><span>Right</span></>)}
               </button>
             </div>
           )}
@@ -311,7 +318,12 @@ export default function MealDetail() {
           <button onClick={()=>setEdit(e=>!e)} className="text-xs text-emerald-600 underline ml-2">{edit ? 'Cancel' : 'Edit'}</button>
         )}
       </div>
-      {meal.status === 'Processing' && <div className="text-xs text-gray-500 animate-pulse">Analyzing...</div>}
+      {meal.status === 'Processing' && (
+        <div className="text-xs text-gray-500 flex items-center gap-2">
+          <Spinner size={14} title="Analyzing" />
+          <span>Analyzing...</span>
+        </div>
+      )}
       {deleteMut.isError && (
         <div className="text-xs text-red-600">Error deleting meal</div>
       )}
@@ -321,8 +333,9 @@ export default function MealDetail() {
           <button
             onClick={() => retryMut.mutate()}
             disabled={retryMut.isPending}
-            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded disabled:opacity-50">
-            {retryMut.isPending ? 'Retrying…' : 'Retry analysis'}
+            className="text-xs bg-red-600 text-white px-2 py-0.5 rounded disabled:opacity-50 inline-flex items-center gap-1">
+            {retryMut.isPending && <Spinner size={12} title="Retrying" />}
+            <span>{retryMut.isPending ? 'Retrying…' : 'Retry analysis'}</span>
           </button>
         </div>
       )}
@@ -344,7 +357,14 @@ export default function MealDetail() {
             <div><label className="block">C</label><input type="number" className="w-full border rounded px-1 py-0.5" value={carb} onChange={e=>setCarb(e.target.value)} /></div>
             <div><label className="block">F</label><input type="number" className="w-full border rounded px-1 py-0.5" value={fat} onChange={e=>setFat(e.target.value)} /></div>
           </div>
-            <button disabled={updateMut.isPending} onClick={()=>updateMut.mutate()} className="bg-emerald-600 text-white rounded px-3 py-1 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1">{updateMut.isPending ? 'Saving...' : 'Save Changes'}</button>
+            <button
+              disabled={updateMut.isPending}
+              onClick={()=>updateMut.mutate()}
+              className="inline-flex items-center gap-2 bg-emerald-600 text-white rounded px-3 py-1 text-sm disabled:opacity-50 focus:outline-none focus:ring-2 focus:ring-emerald-500 focus:ring-offset-1"
+            >
+              {updateMut.isPending && <Spinner size={14} title="Saving" />}
+              <span>{updateMut.isPending ? 'Saving…' : 'Save Changes'}</span>
+            </button>
           {updateMut.isError && <div className="text-xs text-red-600">Error updating meal</div>}
         </div>
       )}
@@ -375,7 +395,7 @@ export default function MealDetail() {
         <button
           type="button"
           onClick={() => navigate(meal ? toBackPath(meal.createdAtUtc) : '/')}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-white text-emerald-700 font-semibold shadow-sm border border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200 active:scale-[0.99] transition"
+          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-emerald-600 text-white font-semibold shadow-sm border border-emerald-700 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition"
           aria-label="Back"
         >
           Back
@@ -384,11 +404,12 @@ export default function MealDetail() {
           type="button"
           onClick={() => duplicateMut.mutate()}
           disabled={duplicateMut.isPending}
-          className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-emerald-600 text-white font-semibold shadow-sm border border-emerald-700 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition disabled:opacity-60"
+          className="inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-md bg-white text-emerald-700 font-semibold shadow-sm border border-emerald-200 hover:bg-emerald-50 focus:outline-none focus:ring-2 focus:ring-emerald-200 active:scale-[0.99] transition disabled:opacity-60"
           aria-label="Duplicate meal to today"
           title="Duplicate meal to today"
         >
-          {duplicateMut.isPending ? 'Duplicating…' : 'Duplicate to Today'}
+          {duplicateMut.isPending && <Spinner size={16} title="Duplicating" />}
+          <span>{duplicateMut.isPending ? 'Duplicating…' : 'Duplicate to Today'}</span>
         </button>
       </div>
     </div>

@@ -88,7 +88,13 @@ public static class MealsEndpoints
             meal.Fat = req.Fat;
             if (req.CreatedAtUtc.HasValue)
             {
-                var newUtc = DateTime.SpecifyKind(req.CreatedAtUtc.Value, DateTimeKind.Utc);
+                var incoming = req.CreatedAtUtc.Value;
+                DateTime newUtc = incoming.Kind switch
+                {
+                    DateTimeKind.Utc => incoming,
+                    DateTimeKind.Local => incoming.ToUniversalTime(),
+                    _ => DateTime.SpecifyKind(incoming, DateTimeKind.Utc) // assume already UTC if unspecified
+                };
                 if (newUtc > DateTime.UtcNow.AddMinutes(5)) newUtc = DateTime.UtcNow;
                 meal.CreatedAtUtc = newUtc;
             }
