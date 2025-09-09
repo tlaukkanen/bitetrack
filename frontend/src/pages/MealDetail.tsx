@@ -1,7 +1,7 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useQuery, useMutation, useQueryClient } from '@tanstack/react-query';
-import api, { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage, uploadMeal } from '../api';
+import api, { getMeal, MealDto, fetchMealImage, updateMeal, retryMealAnalysis, deleteMeal, getGoal, rotateMealImage, duplicateMeal } from '../api';
 import Spinner from '../components/Spinner';
 import toast from 'react-hot-toast';
 import { FiTrash2, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
@@ -37,6 +37,13 @@ export default function MealDetail() {
   const [dtLocalOrig, setDtLocalOrig] = useState('');
   const [rotation, setRotation] = useState(0);
   const [isRotating, setIsRotating] = useState(false);
+  const [selectedMetric, setSelectedMetric] = useState<'calories' | 'protein' | 'carbs' | 'fat'>(() => {
+    try {
+      const v = localStorage.getItem('macroSelectedMetric');
+      if (v === 'calories' || v === 'protein' || v === 'carbs' || v === 'fat') return v;
+    } catch {}
+    return 'calories';
+  });
 
   useEffect(() => {
     if (meal) {
@@ -54,6 +61,11 @@ export default function MealDetail() {
       setRotation(0);
     }
   }, [meal?.id, meal?.status]);
+
+  // Persist selected metric per-session via localStorage
+  useEffect(() => {
+    try { localStorage.setItem('macroSelectedMetric', selectedMetric); } catch {}
+  }, [selectedMetric]);
 
   useEffect(() => {
     if (!edit) setRotation(0);
@@ -113,20 +125,9 @@ export default function MealDetail() {
   const duplicateMut = useMutation({
     mutationFn: async () => {
       if (!meal) throw new Error('No meal');
-      if (!meal.photoPath) throw new Error('No photo to duplicate');
-      const resp = await api.get(`/meals/${meal.id}/image`, { responseType: 'blob', params: { _: Date.now() } });
-      const blob: Blob = resp.data;
-      const file = new File([blob], `meal-${Date.now()}.jpg`, { type: blob.type || 'image/jpeg' });
-      const newMeal = await uploadMeal(file, new Date());
-      const payload: any = {};
-      if (meal.description) payload.description = meal.description;
-      if (meal.calories != null) payload.calories = meal.calories;
-      if (meal.protein != null) payload.protein = meal.protein;
-      if (meal.carbs != null) payload.carbs = meal.carbs;
-      if (meal.fat != null) payload.fat = meal.fat;
-      if (Object.keys(payload).length > 0) {
-        try { await updateMeal(newMeal.id, payload); } catch {}
-      }
+      // Ask backend to duplicate including analysis, set created time to now
+      const nowIso = new Date().toISOString();
+      const newMeal = await duplicateMeal(meal.id, nowIso);
       return newMeal;
     },
     onSuccess: (newMeal) => {
@@ -380,19 +381,50 @@ export default function MealDetail() {
           proteinGoal={goal?.protein ?? null}
           carbsGoal={goal?.carbs ?? null}
           fatGoal={goal?.fat ?? null}
+          selected={selectedMetric}
+          onSelect={(m) => setSelectedMetric(m)}
         />
       </div>
       {meal.items.length > 0 && (
         <div className="space-y-1">
-          {meal.items.map(i => (
-            <div key={i.id} className="flex justify-between text-sm">
-              <span>{i.name}</span>
-              <span>{i.calories ? Math.round(i.calories) + ' kcal' : ''}</span>
-            </div>
-          ))}
+          {meal.items.map(i => {
+            const formatValue = () => {
+              switch (selectedMetric) {
+                case 'calories':
+                  return i.calories != null ? `${Math.round(i.calories)} kcal` : '';
+                case 'protein':
+                  return i.protein != null ? `${Math.round(i.protein)} g` : '';
+                case 'carbs':
+                  return i.carbs != null ? `${Math.round(i.carbs)} g` : '';
+                case 'fat':
+                  return i.fat != null ? `${Math.round(i.fat)} g` : '';
+                default:
+                  return '';
+              }
+            };
+            return (
+              <div key={i.id} className="flex justify-between text-sm">
+                <span>{i.name}</span>
+                <span>{formatValue()}</span>
+              </div>
+            );
+          })}
         </div>
       )}
-      <div className="text-sm font-medium">Total: {meal.calories ? Math.round(meal.calories) + ' kcal' : '?'}</div>
+      <div className="text-sm font-medium">
+        {selectedMetric === 'calories' && (
+          <>Total: {meal.calories != null ? Math.round(meal.calories) + ' kcal' : '?'}</>
+        )}
+        {selectedMetric === 'protein' && (
+          <>Protein: {meal.protein != null ? Math.round(meal.protein) + ' g' : '?'}</>
+        )}
+        {selectedMetric === 'carbs' && (
+          <>Carbs: {meal.carbs != null ? Math.round(meal.carbs) + ' g' : '?'}</>
+        )}
+        {selectedMetric === 'fat' && (
+          <>Fat: {meal.fat != null ? Math.round(meal.fat) + ' g' : '?'}</>
+        )}
+      </div>
       <div className="mt-3 flex flex-col sm:flex-row gap-3">
         <button
           type="button"

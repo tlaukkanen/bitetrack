@@ -109,3 +109,10 @@ export async function rotateMealImage(id: string, direction: 'left' | 'right' = 
   const r = await api.post(`/meals/${id}/image/rotate`, null, { params: { direction, degrees } });
   return r.data as MealDto;
 }
+
+export async function duplicateMeal(id: string, createdAtUtc?: string): Promise<MealDto> {
+  const params: Record<string, any> = {};
+  if (createdAtUtc) params.createdAtUtc = createdAtUtc;
+  const r = await api.post(`/meals/${id}/duplicate`, null, { params: Object.keys(params).length ? params : undefined });
+  return r.data as MealDto;
+}

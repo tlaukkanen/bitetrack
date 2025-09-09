@@ -4,6 +4,7 @@ using System;
 using BiteTrack.Api.Data;
 using BiteTrack.Api.Domain;
 using BiteTrack.Api.Processing;
+using BiteTrack.Api.Utils;
 using Microsoft.AspNetCore.Http;
 using Microsoft.EntityFrameworkCore;
 
@@ -69,5 +70,60 @@ public class MealService
         try { if (!string.IsNullOrWhiteSpace(photo)) await storage.DeleteAsync(photo, ct); } catch { }
         try { if (!string.IsNullOrWhiteSpace(thumb)) await storage.DeleteAsync(thumb, ct); } catch { }
         return true;
+    }
+
+    public async Task<Meal?> DuplicateMealAsync(Guid userId, Guid sourceMealId, IPhotoStorage storage, DateTime? createdAtUtc = null, CancellationToken ct = default)
+    {
+        var source = await _db.Meals.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == sourceMealId && m.UserId == userId, ct);
+        if (source == null) return null;
+        if (string.IsNullOrWhiteSpace(source.PhotoPath)) return null;
+
+        var fullPath = storage.ResolvePath(source.PhotoPath);
+        if (!File.Exists(fullPath)) return null;
+
+        var ext = Path.GetExtension(source.PhotoPath);
+        if (string.IsNullOrEmpty(ext)) ext = ".jpg";
+        var newFileName = $"users/{userId}/" + Guid.NewGuid().ToString("N") + ext;
+        await using var fs = File.OpenRead(fullPath);
+        var contentType = ContentTypeHelper.GetContentType(fullPath);
+        var saved = await storage.SaveAsync(newFileName, fs, contentType, ct);
+
+        var when = createdAtUtc.HasValue ? createdAtUtc.Value : DateTime.UtcNow;
+
+        var clone = new Meal
+        {
+            UserId = userId,
+            CreatedAtUtc = when,
+            UpdatedAtUtc = when,
+            Status = source.Status,
+            PhotoPath = saved.PhotoPath,
+            ThumbnailPath = saved.ThumbnailPath,
+            Description = source.Description,
+            Calories = source.Calories,
+            Protein = source.Protein,
+            Carbs = source.Carbs,
+            Fat = source.Fat,
+            RawAiJson = source.RawAiJson,
+            AiModel = source.AiModel,
+            ErrorMessage = source.ErrorMessage
+        };
+
+        foreach (var it in source.Items)
+        {
+            clone.Items.Add(new Domain.MealFoodItem
+            {
+                Name = it.Name,
+                Grams = it.Grams,
+                Calories = it.Calories,
+                Protein = it.Protein,
+                Carbs = it.Carbs,
+                Fat = it.Fat,
+                Confidence = it.Confidence
+            });
+        }
+
+        _db.Meals.Add(clone);
+        await _db.SaveChangesAsync(ct);
+        return clone;
     }
 }

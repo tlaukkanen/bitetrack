@@ -174,6 +174,19 @@ public static class MealsEndpoints
             return ok ? Results.NoContent() : Results.NotFound();
         });
 
+        group.MapPost("/{id:guid}/duplicate", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, IPhotoStorage storage, Guid id, DateTime? createdAtUtc) =>
+        {
+            var userId = user.GetUserId();
+            if (userId == Guid.Empty) return Results.Unauthorized();
+            // If client provides a future timestamp more than 5 minutes ahead, clamp to now
+            if (createdAtUtc.HasValue && createdAtUtc.Value > DateTime.UtcNow.AddMinutes(5))
+            {
+                createdAtUtc = DateTime.UtcNow;
+            }
+            var clone = await meals.DuplicateMealAsync(userId, id, storage, createdAtUtc);
+            return clone is null ? Results.NotFound() : Results.Ok(MealDto.FromEntity(clone));
+        });
+
         return app;
     }
 }

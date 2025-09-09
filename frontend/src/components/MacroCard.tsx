@@ -6,9 +6,11 @@ interface MacroCardProps {
   goal?: number | undefined | null;
   className?: string;
   unit?: string; // e.g., 'g' or ''
+  onClick?: () => void;
+  active?: boolean;
 }
 
-export function MacroCard({ label, value, goal, className = '', unit = '' }: MacroCardProps) {
+export function MacroCard({ label, value, goal, className = '', unit = '', onClick, active = false }: MacroCardProps) {
   const hasGoal = !!goal && goal > 0;
   const pct = hasGoal && value != null ? Math.min(100, Math.round((value / (goal as number)) * 100)) : null;
   const over = hasGoal && value != null && value > (goal as number);
@@ -17,7 +19,14 @@ export function MacroCard({ label, value, goal, className = '', unit = '' }: Mac
   const circumference = 2 * Math.PI * r;
   const ringProgress = pct != null ? (pct / 100) * circumference : 0;
   return (
-    <div className={`bg-white rounded p-2 shadow-md text-center flex flex-col items-stretch ${className}`}> 
+    <div
+      className={`bg-white rounded p-2 shadow-md text-center flex flex-col items-stretch ${onClick ? 'cursor-pointer' : ''} ${active ? 'ring-2 ring-emerald-500' : ''} ${className}`}
+      onClick={onClick}
+      role={onClick ? 'button' : undefined}
+      tabIndex={onClick ? 0 : undefined}
+      onKeyDown={onClick ? (e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); onClick(); } } : undefined}
+      aria-pressed={onClick ? (active ? 'true' : 'false') : undefined}
+    > 
       <div className="text-[10px] uppercase tracking-wide text-gray-500">{label}</div>
       <div className={`font-semibold text-sm ${over ? 'text-red-600' : ''} sm:mb-1`}>{value != null ? Math.round(value) : '-'}{unit}</div>
       {hasGoal && (
@@ -81,15 +90,17 @@ interface MacroCardGroupProps {
   proteinGoal?: number | null;
   carbsGoal?: number | null;
   fatGoal?: number | null;
+  selected?: 'calories' | 'protein' | 'carbs' | 'fat';
+  onSelect?: (metric: 'calories' | 'protein' | 'carbs' | 'fat') => void;
 }
 
-export function MacroCardGroup({ calories, protein, carbs, fat, caloriesGoal, proteinGoal, carbsGoal, fatGoal }: MacroCardGroupProps) {
+export function MacroCardGroup({ calories, protein, carbs, fat, caloriesGoal, proteinGoal, carbsGoal, fatGoal, selected, onSelect }: MacroCardGroupProps) {
   return (
     <div className="grid grid-cols-4 gap-2">
-      <MacroCard label="kcal" value={calories} goal={caloriesGoal} />
-      <MacroCard label="Protein" value={protein} goal={proteinGoal} unit="g" />
-      <MacroCard label="Carbs" value={carbs} goal={carbsGoal} unit="g" />
-      <MacroCard label="Fat" value={fat} goal={fatGoal} unit="g" />
+      <MacroCard label="kcal" value={calories} goal={caloriesGoal} active={selected === 'calories'} onClick={onSelect ? () => onSelect('calories') : undefined} />
+      <MacroCard label="Protein" value={protein} goal={proteinGoal} unit="g" active={selected === 'protein'} onClick={onSelect ? () => onSelect('protein') : undefined} />
+      <MacroCard label="Carbs" value={carbs} goal={carbsGoal} unit="g" active={selected === 'carbs'} onClick={onSelect ? () => onSelect('carbs') : undefined} />
+      <MacroCard label="Fat" value={fat} goal={fatGoal} unit="g" active={selected === 'fat'} onClick={onSelect ? () => onSelect('fat') : undefined} />
     </div>
   );
 }
