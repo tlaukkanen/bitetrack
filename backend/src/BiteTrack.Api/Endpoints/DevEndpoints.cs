@@ -23,7 +23,7 @@ public static class DevEndpoints
                     u.Email,
                     u.DisplayName,
                     u.Meals.Count(),
-                    u.Meals.Max(m => (DateTime?)m.CreatedAtUtc)
+                    u.Meals.Max(m => (DateTime?)DateTime.SpecifyKind(m.CreatedAtUtc, DateTimeKind.Utc))
                 ))
                 .ToListAsync();
             return Results.Ok(list);
@@ -40,7 +40,7 @@ public static class DevEndpoints
                     u.Meals
                         .OrderByDescending(m => m.CreatedAtUtc)
                         .Take(20)
-                        .Select(m => new DevMealDto(m.Id, m.CreatedAtUtc, m.Status.ToString(), m.Calories, m.Protein, m.Carbs, m.Fat))
+                        .Select(m => new DevMealDto(m.Id, DateTime.SpecifyKind(m.CreatedAtUtc, DateTimeKind.Utc), m.Status.ToString(), m.Calories, m.Protein, m.Carbs, m.Fat))
                         .ToList()
                 ))
                 .FirstOrDefaultAsync();

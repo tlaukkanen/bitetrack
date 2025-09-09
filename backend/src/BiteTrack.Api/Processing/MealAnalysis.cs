@@ -39,17 +39,17 @@ public class InMemoryMealAnalysisQueue : IMealAnalysisQueue
 
 public interface IAiMealAnalyzer
 {
-    Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, CancellationToken ct = default);
+    Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, string? userDescription = null, CancellationToken ct = default);
 }
 
-public record MealAnalysisResult(string RawJson, int Calories, float Protein, float Carbs, float Fat, IEnumerable<MealItemResult> Items);
+public record MealAnalysisResult(string RawJson, string Description, int Calories, float Protein, float Carbs, float Fat, IEnumerable<MealItemResult> Items);
 public record MealItemResult(string Name, float? Grams, int? Calories, float? Protein, float? Carbs, float? Fat, float? Confidence);
 
 public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 {
     private readonly IConfiguration _config;
     public AzureOpenAiMealAnalyzer(IConfiguration config) { _config = config; }
-    public async Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, CancellationToken ct = default)
+    public async Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, string? userDescription = null, CancellationToken ct = default)
     {
         var endpoint = _config.GetValue<string>("AOAI_ENDPOINT");
         var apiKey = _config.GetValue<string>("AOAI_API_KEY");
@@ -72,14 +72,15 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
     var chatClient = azureClient.GetChatClient(deployment);
     using var stream = File.OpenRead(localPhotoPath);
 
-        var systemPrompt = "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. Return only JSON that matches the provided schema with no extra commentary.";
-        var userInstruction = "Estimate totals and list recognizable items with grams and per-item macros when possible.";
+    var systemPrompt = "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. If a user description is provided, use it as context. If not, generate a concise human-friendly description. Return only JSON that matches the provided schema with no extra commentary.";
+    var userInstruction = "Estimate totals and list recognizable items with grams and per-item macros when possible. Include a short description summarizing the meal.";
 
         var schema = new
         {
             type = "object",
             properties = new
             {
+                description = new { type = "string" },
                 items = new
                 {
                     type = "array",
@@ -115,7 +116,7 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
                     additionalProperties = false
                 }
             },
-            required = new[] { "items", "totals" },
+            required = new[] { "description", "items", "totals" },
             additionalProperties = false
         };
 
@@ -135,6 +136,7 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
             new SystemChatMessage(systemPrompt),
             ChatMessage.CreateUserMessage(
                 ChatMessageContentPart.CreateTextPart(userInstruction),
+                ChatMessageContentPart.CreateTextPart(string.IsNullOrWhiteSpace(userDescription) ? "User description: (none). Please generate a concise description." : $"User description: {userDescription}"),
                 ChatMessageContentPart.CreateImagePart(bytes, contentType))
         };
 
@@ -143,7 +145,8 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 
         using var doc = JsonDocument.Parse(content);
         var root = doc.RootElement;
-        var totals = root.GetProperty("totals");
+    string description = root.TryGetProperty("description", out var descEl) ? (descEl.GetString() ?? string.Empty) : string.Empty;
+    var totals = root.GetProperty("totals");
         int calories = totals.GetProperty("calories").GetInt32();
         float protein = totals.GetProperty("protein").GetSingle();
         float carbs = totals.GetProperty("carbs").GetSingle();
@@ -165,7 +168,7 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
             }
         }
 
-        return new MealAnalysisResult(content, calories, protein, carbs, fat, itemsList);
+        return new MealAnalysisResult(content, description, calories, protein, carbs, fat, itemsList);
     }
 }
 
@@ -393,7 +396,7 @@ public class MealAnalysisBackgroundService : BackgroundService
                 var meal = await db.Meals.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == req.MealId, stoppingToken);
                 if (meal == null) continue;
                 var path = storage.ResolvePath(meal.PhotoPath);
-                var result = await analyzer.AnalyzeAsync(path, stoppingToken);
+                var result = await analyzer.AnalyzeAsync(path, meal.Description, stoppingToken);
                 meal.Status = MealStatus.Ready;
                 meal.Calories = result.Calories;
                 meal.Protein = result.Protein;
@@ -401,6 +404,10 @@ public class MealAnalysisBackgroundService : BackgroundService
                 meal.Fat = result.Fat;
                 meal.RawAiJson = result.RawJson;
                 meal.AiModel = "gpt-4o";
+                if (string.IsNullOrWhiteSpace(meal.Description) && !string.IsNullOrWhiteSpace(result.Description))
+                {
+                    meal.Description = result.Description.Trim();
+                }
                 if (meal.Items.Count > 0)
                 {
                     var existing = meal.Items.ToList();

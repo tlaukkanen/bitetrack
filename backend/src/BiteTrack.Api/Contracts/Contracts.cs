@@ -15,7 +15,7 @@ public record MealDto(Guid Id, DateTime CreatedAtUtc, string Status, string Phot
 {
     public static MealDto FromEntity(Meal m) => new(
         m.Id,
-        m.CreatedAtUtc,
+        DateTime.SpecifyKind(m.CreatedAtUtc, DateTimeKind.Utc),
         m.Status.ToString(),
         m.PhotoPath,
         m.ThumbnailPath,

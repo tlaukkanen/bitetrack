@@ -99,7 +99,7 @@ export default function AddMeal() {
       <div className="space-y-1">
         <label className="block text-sm font-medium" htmlFor="meal-desc">Description (optional)</label>
         <textarea id="meal-desc" rows={2} value={description} onChange={e=>setDescription(e.target.value)} className="w-full border rounded px-2 py-1 text-sm" placeholder="e.g. Chicken salad with avocado" />
-  <p className="text-xs text-gray-500">Add a note so you remember the meal later.</p>
+        <p className="text-xs text-gray-500">Note: It will help the AI analysis if you enter a brief description. If you leave it empty then AI can add a description based on the photo.</p>
       </div>
   <button
         disabled={!file || busy}
