@@ -313,11 +313,13 @@ export default function MealDetail() {
           />
         </div>
       )}
-      <div className="text-sm text-gray-600 flex justify-between items-center">Status: {meal.status}
+      
+      <div className="text-sm text-gray-600 flex justify-between items-center">{meal.status !== 'Ready' && (<>Status: {meal.status}</>)}
         {meal.status !== 'Processing' && (
           <button onClick={()=>setEdit(e=>!e)} className="text-xs text-emerald-600 underline ml-2">{edit ? 'Cancel' : 'Edit'}</button>
         )}
       </div>
+      
       {meal.status === 'Processing' && (
         <div className="text-xs text-gray-500 flex items-center gap-2">
           <Spinner size={14} title="Analyzing" />
