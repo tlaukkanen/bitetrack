@@ -26,8 +26,8 @@ export function useAuthToken() {
     return () => window.removeEventListener('authTokenChanged', listener);
   }, []);
 
-  const logout = React.useCallback(() => {
-    apiLogout();
+  const logout = React.useCallback(async () => {
+    await apiLogout();
   }, []);
 
   return { token, hasToken: !!token, logout };

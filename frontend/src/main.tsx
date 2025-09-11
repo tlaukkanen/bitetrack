@@ -12,7 +12,7 @@ import Profile from './pages/Profile';
 import Promo from './pages/Promo';
 import Pricing from './pages/Pricing';
 import { MdAdd } from 'react-icons/md';
-import { initToken } from './api';
+import { initToken, AUTH_EXPIRED_EVENT } from './api';
 import { Header } from './components/Header';
 import { useAuthToken } from './hooks/useAuthToken';
 import { Toaster } from 'react-hot-toast';
@@ -93,6 +93,7 @@ function App() {
   return (
     <QueryClientProvider client={qc}>
       <BrowserRouter>
+        <AuthExpiryListener />
         <Header />
         <NavBar />
         <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
@@ -112,6 +113,27 @@ function App() {
       </BrowserRouter>
     </QueryClientProvider>
   );
+}
+
+// Listen for global auth expiration and navigate to login with returnUrl
+function AuthExpiryListener() {
+  const navigate = useNavigate();
+  React.useEffect(() => {
+    const handler = (e: Event) => {
+      try {
+        const detail = (e as CustomEvent).detail as { path?: string } | undefined;
+        const path = detail?.path || window.location.pathname + window.location.search + window.location.hash;
+        const params = new URLSearchParams();
+        if (path && !path.startsWith('/login')) params.set('returnUrl', path);
+        navigate(`/login${params.toString() ? `?${params.toString()}` : ''}`);
+      } catch {
+        navigate('/login');
+      }
+    };
+    window.addEventListener(AUTH_EXPIRED_EVENT, handler as EventListener);
+    return () => window.removeEventListener(AUTH_EXPIRED_EVENT, handler as EventListener);
+  }, [navigate]);
+  return null;
 }
 
 createRoot(document.getElementById('root')!).render(<App />);

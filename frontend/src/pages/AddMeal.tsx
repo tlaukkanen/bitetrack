@@ -22,18 +22,9 @@ export default function AddMeal() {
       if (!file) throw new Error('No file');
       let created: Date | undefined = undefined;
       if (createdAtLocal) {
-        // Interpret local time as local, convert to Date then rely on toISOString in api.ts to send UTC
         created = new Date(createdAtLocal);
       }
-      // Build form manually here to include description (reusing api.uploadMeal would need change)
-      const form = new FormData();
-      form.append('photo', file);
-      if (created) form.append('createdAt', created.toISOString());
-      if (description.trim()) form.append('description', description.trim());
-      const r = await fetch('/api/meals', { method: 'POST', body: form, headers: { 'Authorization': localStorage.getItem('token') ? `Bearer ${localStorage.getItem('token')}` : '' } });
-      if (!r.ok) throw new Error('Upload failed');
-      const data = await r.json();
-      return data as MealDto;
+      return await uploadMeal(file, created, description);
     },
     onSuccess: (meal: MealDto) => {
       qc.invalidateQueries({ queryKey: ['meals'] });

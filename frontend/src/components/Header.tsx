@@ -2,6 +2,7 @@ import React from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 // Removed direct logout import; using hook instead
 import { useAuthToken } from '../hooks/useAuthToken';
+import toast from 'react-hot-toast';
 
 export function Header() {
   const navigate = useNavigate();
@@ -21,10 +22,11 @@ export function Header() {
   }, [open]);
 
 
-  function handleLogout() {
-    logout();
+  async function handleLogout() {
+    await logout();
     setOpen(false);
-    navigate('/login');
+    toast.success('Logged out');
+    navigate('/');
   }
 
   const wideRoutes = ['/promo', '/pricing'];

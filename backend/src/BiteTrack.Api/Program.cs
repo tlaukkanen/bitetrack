@@ -83,6 +83,7 @@ services.AddCors(o =>
 {
     o.AddPolicy("dev", p => p.AllowAnyOrigin().AllowAnyHeader().AllowAnyMethod());
 });
+services.AddHttpContextAccessor();
 
 var app = builder.Build();
 

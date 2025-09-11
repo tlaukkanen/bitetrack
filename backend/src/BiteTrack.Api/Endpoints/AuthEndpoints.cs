@@ -10,7 +10,7 @@ public static class AuthEndpoints
     {
         var group = app.MapGroup("/api/auth");
 
-        group.MapPost("/register", async (AuthService auth, RegisterRequest req, IConfiguration cfg) =>
+        group.MapPost("/register", async (AuthService auth, RegisterRequest req, IConfiguration cfg, HttpResponse http, IHostEnvironment env) =>
         {
             var inviteCode = cfg["INVITE_CODE"];
             if (!string.IsNullOrWhiteSpace(inviteCode))
@@ -22,8 +22,20 @@ public static class AuthEndpoints
             }
             try
             {
-                var token = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
-                return Results.Ok(new { token });
+                var access = await auth.RegisterAsync(req.Email, req.Password, req.DisplayName);
+                // Generate refresh token and set as HttpOnly cookie
+                var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+                var jwt = handler.ReadJwtToken(access);
+                var userId = jwt.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value;
+                var refresh = auth.GenerateRefreshToken(new Domain.User { Id = Guid.Parse(userId) });
+                http.Cookies.Append("refreshToken", refresh, new CookieOptions
+                {
+                    HttpOnly = true,
+                    Secure = env.IsDevelopment() ? false : true,
+                    SameSite = SameSiteMode.Strict,
+                    Expires = DateTimeOffset.UtcNow.AddDays(30)
+                });
+                return Results.Ok(new { token = access });
             }
             catch (InvalidOperationException ex)
             {
@@ -31,10 +43,41 @@ public static class AuthEndpoints
             }
         });
 
-        group.MapPost("/login", async (AuthService auth, LoginRequest req) =>
+        group.MapPost("/login", async (AuthService auth, LoginRequest req, HttpResponse http) =>
         {
-            var token = await auth.LoginAsync(req.Email, req.Password);
-            return token is null ? Results.Unauthorized() : Results.Ok(new { token });
+            var access = await auth.LoginAsync(req.Email, req.Password);
+            if (access is null) return Results.Unauthorized();
+            var handler = new System.IdentityModel.Tokens.Jwt.JwtSecurityTokenHandler();
+            var jwt = handler.ReadJwtToken(access);
+            var userId = jwt.Claims.First(c => c.Type == System.Security.Claims.ClaimTypes.NameIdentifier).Value;
+            var refresh = auth.GenerateRefreshToken(new Domain.User { Id = Guid.Parse(userId) });
+            http.Cookies.Append("refreshToken", refresh, new CookieOptions
+            {
+                HttpOnly = true,
+                Secure = http.HttpContext?.Request.IsHttps ?? false ? true : false,
+                SameSite = SameSiteMode.Strict,
+                Expires = DateTimeOffset.UtcNow.AddDays(30)
+            });
+            return Results.Ok(new { token = access });
+        });
+
+        group.MapPost("/refresh", async (AuthService auth, HttpRequest http) =>
+        {
+            if (!http.Cookies.TryGetValue("refreshToken", out var refreshToken) || string.IsNullOrWhiteSpace(refreshToken))
+            {
+                return Results.Unauthorized();
+            }
+            var userId = auth.ValidateRefreshToken(refreshToken);
+            if (userId is null) return Results.Unauthorized();
+            var access = await auth.GenerateAccessTokenForUserId(userId.Value);
+            if (access is null) return Results.Unauthorized();
+            return Results.Ok(new { token = access });
+        });
+
+        group.MapPost("/logout", (HttpResponse http) =>
+        {
+            http.Cookies.Delete("refreshToken");
+            return Results.Ok();
         });
 
         return app;

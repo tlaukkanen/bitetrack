@@ -1,6 +1,21 @@
 import axios from 'axios';
+import toast from 'react-hot-toast';
 
 const api = axios.create({ baseURL: '/api' });
+
+export const AUTH_EXPIRED_EVENT = 'authExpired';
+let isRefreshing = false;
+let refreshWaiters: Array<(token: string | null) => void> = [];
+
+async function requestNewAccessToken(): Promise<string | null> {
+  try {
+    const r = await axios.post('/api/auth/refresh', null, { withCredentials: true });
+    const token = r.data?.token as string | undefined;
+    return token ?? null;
+  } catch {
+    return null;
+  }
+}
 
 export function setToken(token: string | null) {
   if (token) {
@@ -21,6 +36,67 @@ export function initToken() {
     if (t) setToken(t);
   } catch {}
 }
+
+// Attach Authorization header from localStorage (for manual axios, not just api instance)
+api.interceptors.request.use((config) => {
+  const token = (() => { try { return localStorage.getItem('token'); } catch { return null; } })();
+  if (token && !config.headers?.Authorization) {
+    config.headers = config.headers || {};
+    (config.headers as any)['Authorization'] = `Bearer ${token}`;
+  }
+  return config;
+});
+
+// Global response interceptor to handle auth expiry with silent refresh
+api.interceptors.response.use(
+  (resp) => resp,
+  (error) => {
+    const status = error?.response?.status;
+    const original = error.config;
+    if ((status === 401 || status === 403) && !original?._retry) {
+      original._retry = true;
+      if (!isRefreshing) {
+        isRefreshing = true;
+        return requestNewAccessToken().then((newToken) => {
+          isRefreshing = false;
+          refreshWaiters.forEach((w) => w(newToken));
+          refreshWaiters = [];
+          if (newToken) {
+            setToken(newToken);
+            original.headers = original.headers || {};
+            original.headers['Authorization'] = `Bearer ${newToken}`;
+            return api.request(original);
+          }
+          // Hard expire: notify and redirect
+          try { toast.error('Session expired. Please sign in again.'); } catch {}
+          try {
+            const path = window.location.pathname + window.location.search + window.location.hash;
+            window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
+          } catch {}
+          return Promise.reject(error);
+        });
+      } else {
+        return new Promise((resolve, reject) => {
+          refreshWaiters.push((token) => {
+            if (token) {
+              original.headers = original.headers || {};
+              original.headers['Authorization'] = `Bearer ${token}`;
+              resolve(api.request(original));
+            } else {
+              try { toast.error('Session expired. Please sign in again.'); } catch {}
+              try {
+                const path = window.location.pathname + window.location.search + window.location.hash;
+                window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
+              } catch {}
+              reject(error);
+            }
+          });
+        });
+      }
+    }
+    return Promise.reject(error);
+  }
+);
 
 export interface MealItemDto { id: string; name: string; grams?: number; calories?: number; protein?: number; carbs?: number; fat?: number; confidence?: number; }
 export interface MealDto { id: string; createdAtUtc: string; status: string; photoPath: string; thumbnailPath?: string | null; description?: string | null; calories?: number; protein?: number; carbs?: number; fat?: number; items: MealItemDto[]; errorMessage?: string; }
@@ -55,12 +131,15 @@ export async function getMeal(id: string) {
   const r = await api.get(`/meals/${id}`);
   return r.data as MealDto;
 }
-export async function uploadMeal(photo: File, createdAt?: Date) {
+export async function uploadMeal(photo: File, createdAt?: Date, description?: string) {
   const form = new FormData();
   form.append('photo', photo);
   if (createdAt) {
     // Send ISO string in UTC
     form.append('createdAt', createdAt.toISOString());
+  }
+  if (description && description.trim()) {
+    form.append('description', description.trim());
   }
   const r = await api.post('/meals', form, { headers: { 'Content-Type': 'multipart/form-data' } });
   return r.data as MealDto;
@@ -88,8 +167,14 @@ export function mealImageUrl(id: string, thumb?: boolean) {
 }
 
 // Basic logout helper (extend here if you later add server-side revocation)
-export function logout() {
-  setToken(null);
+export async function logout() {
+  try {
+    await axios.post('/api/auth/logout', null, { withCredentials: true });
+  } catch {
+    // ignore
+  } finally {
+    setToken(null);
+  }
 }
 
 // Fetch meal image with auth header and return a blob URL for <img src>

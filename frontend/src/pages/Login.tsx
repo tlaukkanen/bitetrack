@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import { login, register, setToken } from '../api';
-import { useNavigate } from 'react-router-dom';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 const RECAPTCHA_SITE_KEY = import.meta.env.VITE_RECAPTCHA_SITE_KEY || '6LeIxAcTAAAAAJcZVRqyHh71UMIEGNQ_MXjiZKhI';
 
@@ -13,6 +13,9 @@ export default function Login() {
   const [msg, setMsg] = useState<string | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const navigate = useNavigate();
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const returnUrl = params.get('returnUrl') || '/';
 
   async function submit() {
     if (isSubmitting) return;
@@ -24,9 +27,9 @@ export default function Login() {
       } else {
         token = await login(email, password);
       }
-      setToken(token);
-      setMsg('Success');
-      navigate('/');
+  setToken(token);
+  setMsg('Success');
+  navigate(returnUrl);
     } catch (e: any) {
       // Attempt to extract clearer backend error message
       let friendly = 'Error';
