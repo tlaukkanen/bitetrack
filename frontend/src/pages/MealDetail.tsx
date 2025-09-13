@@ -344,8 +344,6 @@ export default function MealDetail() {
         </div>
       )}
   {!edit && meal.description && <div className="text-sm">{meal.description}</div>}
-  {/* Subtle AI disclaimer below description/status */}
-  <AIDisclaimer className="mt-2" />
       {edit && (
         <div className="space-y-2 border rounded p-3 bg-gray-50">
           <div>
@@ -428,6 +426,7 @@ export default function MealDetail() {
           <>Fat: {meal.fat != null ? Math.round(meal.fat) + ' g' : '?'}</>
         )}
       </div>
+      <AIDisclaimer className="mt-2" />
       <div className="mt-3 flex flex-col sm:flex-row gap-3">
         <button
           type="button"

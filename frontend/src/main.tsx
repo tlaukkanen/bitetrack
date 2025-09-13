@@ -48,6 +48,8 @@ function NavBar() {
   };
   return (
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20 pb-[env(safe-area-inset-bottom)]">
+      {/* Top gradient shadow to lift navbar from content */}
+      <div aria-hidden="true" className="pointer-events-none absolute -top-3 left-0 right-0 h-3 bg-gradient-to-t from-black/10 to-transparent" />
   <div className="max-w-md mx-auto grid grid-cols-4 items-end py-1 px-3 relative">
         {/* Floating Add button (half above navbar) */}
         <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
