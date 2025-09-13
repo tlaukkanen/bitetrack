@@ -37,7 +37,7 @@ export function Header() {
         <button
           type="button"
           onClick={() => navigate('/')}
-          className="flex items-center gap-3 focus:outline-none focus:ring-2 focus:ring-emerald-500 rounded"
+          className="flex items-center gap-3 focus:outline-none focus-visible:ring-2 focus-visible:ring-emerald-500 rounded"
           aria-label="Go to dashboard"
         >
           <img src="/icons/logo-128.png" alt="BiteTrack logo" className="h-8 w-8 rounded" />

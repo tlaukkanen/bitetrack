@@ -49,23 +49,23 @@ export default function Promo() {
       <section id="coach" className="bg-white">
         <div className="max-w-4xl mx-auto px-4 py-10 md:py-14">
           <div className="grid md:grid-cols-2 gap-10 items-center">
-            <div className="flex items-center justify-center">
-              <div className="relative w-full max-w-sm">
+            <div className="order-2 md:order-1 flex items-center justify-center">
+              <div className="relative w-full max-w-sm pb-16 md:pb-0">
                 <img
                   src="/photos/mobile_coach-portrait.png"
                   alt="BiteTrack coach suggestions"
-                  className="w-48 md:w-48 lg:w-48 -rotate-6"
+                  className="w-56 md:w-48 lg:w-48 -rotate-6"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
                 <img
                   src="/photos/mobile_coach_suggestions_v2-portrait.png"
                   alt="BiteTrack coach overview"
-                  className="absolute -right-1 top-8 w-60 md:w-64 lg:w-64"
+                  className="absolute -right-1 top-8 w-48 md:w-64 lg:w-64 rotate-6"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
               </div>
             </div>
-            <div>
+            <div className="order-1 md:order-2">
               <h2 className="text-xl md:text-2xl font-bold text-gray-900">Smart AI Coach</h2>
               <p className="mt-3 text-gray-700 text-base md:text-lg">
                 Get personalized feedback and actionable suggestions for your day. The Coach reviews your meals,
@@ -88,7 +88,7 @@ export default function Promo() {
               </p>
             </div>
             <div className="flex items-center justify-center">
-              <div className="relative w-full max-w-sm h-72 md:h-96 overflow-hidden">
+              <div className="relative w-full max-w-sm md:h-[428px] h-[428px] overflow-hidden">
                 <img
                   src="/photos/mobile_insights-portrait.png"
                   alt="BiteTrack insights view"
@@ -120,7 +120,7 @@ export default function Promo() {
           <div className="mt-8">
             <a
               href="/login"
-              className="inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-emerald-600 text-white font-semibold shadow-sm border border-emerald-700 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition"
+              className="w-full sm:w-auto inline-flex items-center justify-center px-5 py-2.5 rounded-md bg-emerald-600 text-white font-semibold shadow-sm border border-emerald-700 hover:bg-emerald-700 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-[0.99] transition"
             >
               Create your account
             </a>

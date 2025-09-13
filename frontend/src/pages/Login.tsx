@@ -51,7 +51,7 @@ export default function Login() {
       <div className="space-y-2">
         <input className="w-full border rounded p-2" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
   {mode==='register' && <input className="w-full border rounded p-2" placeholder="Display name" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>}        
-  {mode==='register' && <input className="w-full border rounded p-2" placeholder="Invitation code" value={invitationCode} onChange={e=>setInvitationCode(e.target.value)}/>}
+  {mode==='register' && <input className="w-full border rounded p-2" placeholder="Sorry, invitation code required here 😉" value={invitationCode} onChange={e=>setInvitationCode(e.target.value)}/>}
         <input type="password" className="w-full border rounded p-2" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
         <button onClick={submit} disabled={isSubmitting} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded py-2">
           {isSubmitting ? 'Processing...' : 'Submit'}
