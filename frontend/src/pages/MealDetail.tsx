@@ -6,6 +6,7 @@ import Spinner from '../components/Spinner';
 import toast from 'react-hot-toast';
 import { FiTrash2, FiRotateCcw, FiRotateCw } from 'react-icons/fi';
 import { MacroCardGroup } from '../components/MacroCard';
+import AIDisclaimer from '../components/AIDisclaimer';
 
 export default function MealDetail() {
   const { id } = useParams<{ id: string }>();
@@ -342,7 +343,9 @@ export default function MealDetail() {
           </button>
         </div>
       )}
-      {!edit && meal.description && <div className="text-sm">{meal.description}</div>}
+  {!edit && meal.description && <div className="text-sm">{meal.description}</div>}
+  {/* Subtle AI disclaimer below description/status */}
+  <AIDisclaimer className="mt-2" />
       {edit && (
         <div className="space-y-2 border rounded p-3 bg-gray-50">
           <div>

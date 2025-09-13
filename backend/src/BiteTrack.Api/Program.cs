@@ -35,6 +35,7 @@ services.AddDbContext<AppDbContext>(opts =>
 
 services.AddScoped<AuthService>();
 services.AddScoped<MealService>();
+services.AddScoped<AiSuggestionService>();
 if (!string.IsNullOrWhiteSpace(config["PHOTOS_STORAGE_ACCOUNT_KEY"]))
 {
     Console.WriteLine("[Photos] Using Azure Blob Storage for photo storage.");
@@ -151,6 +152,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapMealsEndpoints();
 app.MapProfileEndpoints();
+app.MapSuggestionsEndpoints();
 app.MapHealthEndpoints();
 app.MapDevEndpoints(); // only maps in Development
 

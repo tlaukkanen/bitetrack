@@ -6,6 +6,17 @@ const api = axios.create({ baseURL: '/api' });
 export const AUTH_EXPIRED_EVENT = 'authExpired';
 let isRefreshing = false;
 let refreshWaiters: Array<(token: string | null) => void> = [];
+let authExpiryNotified = false;
+
+function notifyAuthExpiredOnce() {
+  if (authExpiryNotified) return;
+  authExpiryNotified = true;
+  try { toast.error('Session expired. Please sign in again.', { id: 'session-expired' }); } catch {}
+  try {
+    const path = window.location.pathname + window.location.search + window.location.hash;
+    window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
+  } catch {}
+}
 
 async function requestNewAccessToken(): Promise<string | null> {
   try {
@@ -21,6 +32,9 @@ export function setToken(token: string | null) {
   if (token) {
     try { localStorage.setItem('token', token); } catch {}
     api.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+    // Reset auth-expired notifier on successful auth
+    authExpiryNotified = false;
+    try { toast.dismiss('session-expired'); } catch {}
   } else {
     try { localStorage.removeItem('token'); } catch {}
     delete api.defaults.headers.common['Authorization'];
@@ -67,12 +81,8 @@ api.interceptors.response.use(
             original.headers['Authorization'] = `Bearer ${newToken}`;
             return api.request(original);
           }
-          // Hard expire: notify and redirect
-          try { toast.error('Session expired. Please sign in again.'); } catch {}
-          try {
-            const path = window.location.pathname + window.location.search + window.location.hash;
-            window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
-          } catch {}
+          // Hard expire: notify once and redirect
+          notifyAuthExpiredOnce();
           return Promise.reject(error);
         });
       } else {
@@ -83,11 +93,8 @@ api.interceptors.response.use(
               original.headers['Authorization'] = `Bearer ${token}`;
               resolve(api.request(original));
             } else {
-              try { toast.error('Session expired. Please sign in again.'); } catch {}
-              try {
-                const path = window.location.pathname + window.location.search + window.location.hash;
-                window.dispatchEvent(new CustomEvent(AUTH_EXPIRED_EVENT, { detail: { path } }));
-              } catch {}
+              // Hard expire (from waiter): notify once and redirect
+              notifyAuthExpiredOnce();
               reject(error);
             }
           });
@@ -174,6 +181,7 @@ export async function logout() {
     // ignore
   } finally {
     setToken(null);
+    try { toast.dismiss('session-expired'); } catch {}
   }
 }
 
@@ -200,4 +208,23 @@ export async function duplicateMeal(id: string, createdAtUtc?: string): Promise<
   if (createdAtUtc) params.createdAtUtc = createdAtUtc;
   const r = await api.post(`/meals/${id}/duplicate`, null, { params: Object.keys(params).length ? params : undefined });
   return r.data as MealDto;
+}
+
+export type SuggestionGoalKey =
+  | 'mild_weight_loss'
+  | 'weight_loss'
+  | 'maintain'
+  | 'eat_healthier'
+  | 'energy'
+  | 'nutrient_balance'
+  | 'heart_health'
+  | 'blood_sugar'
+  | 'anti_inflammation'
+  | 'reduce_processed'
+  | 'more_plant_based';
+
+export interface SuggestionResponse { content: string; }
+export async function getSuggestions(goalKey: SuggestionGoalKey): Promise<SuggestionResponse> {
+  const r = await api.post('/suggestions', { goalKey });
+  return r.data as SuggestionResponse;
 }

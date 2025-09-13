@@ -2,6 +2,8 @@ import React, { useRef, useState } from 'react';
 import { useMutation, useQueryClient } from '@tanstack/react-query';
 import { uploadMeal, MealDto } from '../api';
 import { useNavigate } from 'react-router-dom';
+import Spinner from '../components/Spinner';
+import AIDisclaimer from '../components/AIDisclaimer';
 
 export default function AddMeal() {
   const [file, setFile] = useState<File | null>(null);
@@ -99,8 +101,14 @@ export default function AddMeal() {
       >
         Upload
       </button>
-      {busy && <div className="text-sm">Uploading & processing...</div>}
+      {busy && (
+        <div className="flex items-center gap-2 text-sm text-emerald-700">
+          <Spinner size={16} title="Uploading & processing" />
+          <span>Uploading & processing...</span>
+        </div>
+      )}
       {mutation.isError && <div className="text-sm text-red-600">Error: {(mutation.error as any).message}</div>}
+      <AIDisclaimer className="pt-2 border-t mt-4" />
     </div>
   );
 }

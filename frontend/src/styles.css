@@ -7,3 +7,41 @@ body {
 	background-color: #f9fafb; /* gray-50 */
 	color: #1f2937; /* gray-800 */
 }
+
+/* Lightweight Markdown content styling */
+.md-content {
+	font-size: 0.9375rem; /* ~15px for tighter alignment with app */
+	line-height: 1.6;
+}
+.md-content p + p,
+.md-content ul + p,
+.md-content p + ul,
+.md-content ol + p,
+.md-content p + ol,
+.md-content ul + ul,
+.md-content ol + ol {
+	margin-top: 0.5rem;
+}
+.md-content ul,
+.md-content ol {
+	padding-left: 1.25rem;
+	margin-top: 0.25rem;
+	margin-bottom: 0.25rem;
+	list-style-position: outside;
+}
+.md-content ul { list-style-type: disc; }
+.md-content ol { list-style-type: decimal; }
+.md-content li {
+	margin: 0.125rem 0;
+}
+.md-content li::marker { color: #059669; /* emerald-600 */ }
+.md-content h1,
+.md-content h2,
+.md-content h3 {
+	font-weight: 600;
+	margin-top: 0.75rem;
+	margin-bottom: 0.25rem;
+}
+.md-content h1 { font-size: 1.125rem; }
+.md-content h2 { font-size: 1.0625rem; }
+.md-content h3 { font-size: 1rem; }

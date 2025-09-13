@@ -181,6 +181,15 @@
 				"-c",
 				"Debug"
 			]
+		},
+		{
+			"label": "build:frontend(ad-hoc)",
+			"type": "shell",
+			"command": "npm",
+			"args": [
+				"run",
+				"build"
+			]
 		}
 	]
 }
