@@ -23,15 +23,19 @@ export default function Login() {
     try {
       let token: string;
       if (mode === 'register') {
-        token = await register(email, password, displayName || email.split('@')[0], invitationCode || undefined);
+        token = await register(
+          email,
+          password,
+          displayName || email.split('@')[0],
+          invitationCode || undefined
+        );
       } else {
         token = await login(email, password);
       }
-  setToken(token);
-  setMsg('Success');
-  navigate(returnUrl);
+      setToken(token);
+      setMsg('Success');
+      navigate(returnUrl);
     } catch (e: any) {
-      // Attempt to extract clearer backend error message
       let friendly = 'Error';
       if (e?.response?.data) {
         const data = e.response.data;
@@ -46,18 +50,24 @@ export default function Login() {
   }
 
   return (
-    <div className="p-4 space-y-4">
-      <h1 className="text-xl font-bold text-emerald-600">{mode === 'login' ? 'Login' : 'Register'}</h1>
-      <div className="space-y-2">
-        <input className="w-full border rounded p-2" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
-  {mode==='register' && <input className="w-full border rounded p-2" placeholder="Display name" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>}        
-  {mode==='register' && <input className="w-full border rounded p-2" placeholder="Sorry, invitation code required here 😉" value={invitationCode} onChange={e=>setInvitationCode(e.target.value)}/>}
-        <input type="password" className="w-full border rounded p-2" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
-        <button onClick={submit} disabled={isSubmitting} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded py-2">
-          {isSubmitting ? 'Processing...' : 'Submit'}
-        </button>
-  <button onClick={()=>setMode(mode==='login'?'register':'login')} className="w-full text-sm text-emerald-600 hover:text-emerald-700">{mode==='login'?'Create a new account':'Already a member? Log In'}</button>
-        {msg && <div className="text-sm">{msg}</div>}
+    <div className="p-4 md:p-8 flex justify-center">
+      <div className="w-full max-w-sm sm:max-w-md">
+        <h1 className="text-xl font-bold text-emerald-600 mb-4">{mode === 'login' ? 'Login' : 'Register'}</h1>
+        <div className="space-y-3">
+          <input className="w-full border rounded p-2" placeholder="Email" value={email} onChange={e=>setEmail(e.target.value)}/>
+          {mode==='register' && (
+            <input className="w-full border rounded p-2" placeholder="Display name" value={displayName} onChange={e=>setDisplayName(e.target.value)}/>
+          )}
+          {mode==='register' && (
+            <input className="w-full border rounded p-2" placeholder="Sorry, invitation code required here 😉" value={invitationCode} onChange={e=>setInvitationCode(e.target.value)}/>
+          )}
+          <input type="password" className="w-full border rounded p-2" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
+          <button onClick={submit} disabled={isSubmitting} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded py-2">
+            {isSubmitting ? 'Processing...' : 'Submit'}
+          </button>
+          <button onClick={()=>setMode(mode==='login'?'register':'login')} className="w-full text-sm text-emerald-600 hover:text-emerald-700">{mode==='login'?'Create a new account':'Already a member? Log In'}</button>
+          {msg && <div className="text-sm">{msg}</div>}
+        </div>
       </div>
     </div>
   );

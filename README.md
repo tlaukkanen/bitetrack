@@ -19,17 +19,21 @@ Food macro tracking app with .NET 8 Web API backend & React (Vite + TS) frontend
 | Name | Description |
 |------|-------------|
 | `JWT_SECRET` | Secret for signing JWTs |
-| `DB_CONNECTION` | (Production/Azure) Full SQL Server connection string (overrides individual DB_* vars) |
+| `ConnectionStrings__Default` | Full SQL Server connection string (preferred if set) |
+| `DB_CONNECTION` | Full SQL Server connection string (fallback if `ConnectionStrings__Default` not provided) |
 | `DB_HOST` | SQL Server host (dev defaults to `sqlserver`) |
 | `DB_NAME` | Database name (default `BiteTrack`) |
 | `DB_USER` | SQL auth user (default `sa` for dev) |
 | `DB_PASSWORD` | SQL auth password (match docker-compose SA password in dev) |
-| `PHOTO_STORAGE_ROOT` | Directory for stored photos (defaults to ./photos) |
+| `PHOTO_STORAGE_ROOT` | Directory for stored photos (defaults to `AppContext.BaseDirectory/photos`; in Docker it’s `/app/photos`) |
 | `AOAI_ENDPOINT` | Azure OpenAI endpoint URL |
-| `AOAI_API_KEY` | Azure OpenAI key (local dev only) |
-| `AOAI_DEPLOYMENT` | Deployment name (e.g. gpt-4o) |
+| `AOAI_API_KEY` | Azure OpenAI key (optional if using AAD/Managed Identity) |
+| `AOAI_DEPLOYMENT` | Deployment name (e.g. `gpt-4o`) |
 | `INVITE_CODE` | Optional: If set, registration requires matching invitation code |
 | `DB_INIT_SECRET` | Secret token required to trigger `?create=yes` on `/health/ready` (dev safeguard) |
+| `PHOTOS_STORAGE_ACCOUNT_NAME` | If set with KEY, use Azure Blob Storage for photos |
+| `PHOTOS_STORAGE_ACCOUNT_KEY` | Storage key; presence switches from local storage to Blob |
+| `PHOTOS_STORAGE_ACCOUNT_CONTAINER` | Blob container name (default `photos`) |
 
 ## Local Development
 
@@ -56,7 +60,16 @@ Frontend dev server proxies API calls to `http://localhost:5087`.
 ```bash
 docker compose up --build
 ```
-Visit: Frontend http://localhost:5173 | Swagger http://localhost:5087/swagger | SQL Server localhost,14333
+Visit: Frontend http://localhost:5173 | Swagger http://localhost:5087/swagger | SQL Server localhost,1433
+
+### Using VS Code tasks
+- `dev:all`: starts backend watch, frontend dev server, and opens the browser.
+- `watch`: backend hot-reload (`dotnet watch run`).
+- `frontend:dev:background`: Vite dev server on port 5173 with `/api` proxy to 5087.
+
+### Ports
+- Dev: API `http://localhost:5087` (see `launchSettings.json`), Frontend dev server `http://localhost:5173` (Vite proxy to API).
+- Docker: API listens on `8080` in-container and is mapped to host `5087` by compose. The SPA static build is served by the API with client-side routing fallback.
 
 ### Register & Use
 1. Register: POST /api/auth/register (or via UI Login -> switch to register)
@@ -64,7 +77,49 @@ Visit: Frontend http://localhost:5173 | Swagger http://localhost:5087/swagger | 
 3. Dashboard updates as statuses change from Processing -> Ready
 
 ## Azure OpenAI Setup
-Deploy a vision-capable `gpt-4o` or successor in region `swedencentral`. Provide `AOAI_ENDPOINT` and `AOAI_API_KEY` locally. Future enhancement: use Managed Identity + Key Vault.
+Deploy a vision-capable `gpt-4o` or successor in region `swedencentral`. Provide `AOAI_ENDPOINT` and either:
+- `AOAI_API_KEY` for key-based auth; or
+- no key and authenticate via Azure AD using DefaultAzureCredential (e.g., Managed Identity in Azure, or developer login locally).
+
+Set `AOAI_DEPLOYMENT` to your deployed model name (e.g., `gpt-4o`).
+
+The app supports both key and AAD-based auth today; consider moving keys to Key Vault for production.
+
+## Database readiness and init
+- Readiness: `GET /health/ready` checks DB connectivity and migration state.
+- Guarded init (Development safe-path): set `DB_INIT_SECRET`, then call:
+
+```bash
+curl "http://localhost:5087/health/ready?create=yes&secret=YOUR_SECRET"
+```
+
+Behavior: applies pending EF migrations if any. In Development with no compiled migrations, falls back to `EnsureCreated()`.
+
+## Example environment files
+
+Local development (.env example):
+
+```bash
+JWT_SECRET=change-me
+AOAI_ENDPOINT=https://<your-aoai>.openai.azure.com/
+AOAI_API_KEY=<optional if using AAD>
+AOAI_DEPLOYMENT=gpt-4o
+DB_HOST=localhost,1433
+DB_NAME=BiteTrack
+DB_USER=sa
+DB_PASSWORD=Your_strong_password123
+PHOTO_STORAGE_ROOT=./photos
+INVITE_CODE=devinvite
+DB_INIT_SECRET=dev-init-token
+```
+
+Use Azure Blob for photos (switches storage provider):
+
+```bash
+PHOTOS_STORAGE_ACCOUNT_NAME=<name>
+PHOTOS_STORAGE_ACCOUNT_KEY=<key>
+PHOTOS_STORAGE_ACCOUNT_CONTAINER=photos
+```
 
 ## Roadmap
 - Replace in-memory queue with Azure Storage Queue
@@ -81,4 +136,6 @@ Deploy a vision-capable `gpt-4o` or successor in region `swedencentral`. Provide
 - Add rate limiting & input validation for production
 
 ## License
-Proprietary (add license details as needed)
+Proprietary
+
+Copyright 2025 Tommi Laukkanen

@@ -139,6 +139,7 @@ export default function Promo() {
             <span>by</span>
             <a href="https://www.linkedin.com/in/tlaukkanen/" className="text-emerald-700 font-medium hover:underline" target="_blank" rel="noopener noreferrer">Tommi Laukkanen</a>
           </p>
+          <p className="text-center text-xs text-gray-500 mt-2">© {new Date().getFullYear()} Tommi Laukkanen</p>
         </div>
       </footer>
     </div>

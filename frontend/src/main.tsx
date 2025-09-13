@@ -128,7 +128,7 @@ function App() {
         <Header />
         <NavBar />
         <Toaster position="top-center" toastOptions={{ duration: 2500 }} />
-        <div className="bg-gray-50 min-h-screen">
+        <div className="bg-gray-50 min-h-[calc(100vh-3.5rem)]">
           <Routes>
             <Route path="/" element={<RequireAuth><AuthenticatedFrame><Dashboard /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/meals/:date" element={<RequireAuth><AuthenticatedFrame><Dashboard /></AuthenticatedFrame></RequireAuth>} />

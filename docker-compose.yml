@@ -34,7 +34,6 @@ services:
       - ./photos:/app/photos
     ports:
       - "5087:8080" # API/SPA
-      - "8080:8080" # duplicate mapping retained (can remove)
 
 volumes:
   mssqldata:
