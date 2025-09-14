@@ -58,7 +58,9 @@ function NavBar() {
           className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${isRoot || location.pathname.startsWith('/meals') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Meals"
         >
-          <MdOutlineFoodBank size={22} />
+          <span className="w-9 h-9 rounded-full border border-transparent flex items-center justify-center">
+            <MdOutlineFoodBank size={18} />
+          </span>
           <span className="text-[11px] leading-none">Meals</span>
         </button>
 
@@ -68,7 +70,9 @@ function NavBar() {
           className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/coach') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Coach"
         >
-          <PiSparkle size={22} />
+          <span className="w-9 h-9 rounded-full border border-transparent flex items-center justify-center">
+            <PiSparkle size={18} />
+          </span>
           <span className="text-[11px] leading-none">Coach</span>
         </Link>
 
@@ -78,7 +82,9 @@ function NavBar() {
           className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/insights') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Insights"
         >
-          <MdInsights size={22} />
+          <span className="w-9 h-9 rounded-full border border-transparent flex items-center justify-center">
+            <MdInsights size={18} />
+          </span>
           <span className="text-[11px] leading-none">Insights</span>
         </Link>
 
