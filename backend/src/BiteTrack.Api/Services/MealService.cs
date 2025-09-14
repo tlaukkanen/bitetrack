@@ -50,7 +50,12 @@ public class MealService
         float protein = meals.Sum(m => m.Protein ?? 0);
         float carbs = meals.Sum(m => m.Carbs ?? 0);
         float fat = meals.Sum(m => m.Fat ?? 0);
-        return new DailySummary(date, calories, protein, carbs, fat);
+        var start = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);
+        var end = start.AddDays(1);
+        var waterMl = await _db.WaterIntakes
+            .Where(w => w.UserId == userId && w.CreatedAtUtc >= start && w.CreatedAtUtc < end)
+            .SumAsync(w => (int?)w.AmountMl) ?? 0;
+        return new DailySummary(date, calories, protein, carbs, fat, waterMl);
     }
 
     public Task<int> SaveChangesAsync() => _db.SaveChangesAsync();

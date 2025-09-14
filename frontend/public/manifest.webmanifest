@@ -21,6 +21,18 @@
       "short_name": "Summary",
       "url": "/",
       "icons": [{ "src": "/icons/summary.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Add Water",
+      "short_name": "Add Water",
+      "url": "/water",
+      "icons": [{ "src": "/icons/add-water.png", "sizes": "96x96", "type": "image/png" }]
+    },
+    {
+      "name": "Quick Add Water",
+      "short_name": "Quick Water",
+      "url": "/water?quick=1",
+      "icons": [{ "src": "/icons/water.png", "sizes": "96x96", "type": "image/png" }]
     }
   ]
 }

@@ -3,13 +3,14 @@ import { Link } from 'react-router-dom';
 import { useQuery } from '@tanstack/react-query';
 import { getDailySummary, getGoal, DailySummary, Goal } from '../api';
 
-type Macro = 'all' | 'calories' | 'protein' | 'carbs' | 'fat';
+type Macro = 'all' | 'calories' | 'protein' | 'carbs' | 'fat' | 'water';
 
 const macroColors: Record<Exclude<Macro, 'all'>, string> = {
   calories: '#1f2937', // gray-800
   protein: '#10b981',  // emerald-500
   carbs: '#facc15',    // yellow-400
-  fat: '#fb923c'       // orange-400
+  fat: '#fb923c',       // orange-400
+  water: '#38bdf8'     // sky-400
 };
 
 function toDateStr(d: Date) {
@@ -83,7 +84,7 @@ function InsightsChart({
   showGoal,
   goalValue
 }: {
-  data: Array<{ date: string } & Record<'calories' | 'protein' | 'carbs' | 'fat', number>>;
+  data: Array<{ date: string } & Record<'calories' | 'protein' | 'carbs' | 'fat' | 'water', number>>;
   lines: LineDef[];
   height?: number;
   yUnit?: string;
@@ -235,7 +236,7 @@ export default function Insights() {
   });
   const [mode, setMode] = useState<Macro>(() => {
     const v = (() => { try { return localStorage.getItem('insightsMode'); } catch { return null; } })();
-    if (v === 'calories' || v === 'protein' || v === 'carbs' || v === 'fat') return v;
+    if (v === 'calories' || v === 'protein' || v === 'carbs' || v === 'fat' || v === 'water') return v as Macro;
     return 'all';
   });
 
@@ -249,7 +250,8 @@ export default function Insights() {
     { key: 'calories', label: 'Calories', color: macroColors.calories },
     { key: 'protein', label: 'Protein', color: macroColors.protein },
     { key: 'carbs', label: 'Carbs', color: macroColors.carbs },
-    { key: 'fat', label: 'Fat', color: macroColors.fat }
+    { key: 'fat', label: 'Fat', color: macroColors.fat },
+    { key: 'water', label: 'Water (ml)', color: macroColors.water }
   ];
 
   const chartData = useMemo(() => {
@@ -262,17 +264,18 @@ export default function Insights() {
         calories: g && g.calories > 0 ? Math.round((s.calories / g.calories) * 100) : 0,
         protein: g && g.protein > 0 ? Math.round((s.protein / g.protein) * 100) : 0,
         carbs: g && g.carbs > 0 ? Math.round((s.carbs / g.carbs) * 100) : 0,
-        fat: g && g.fat > 0 ? Math.round((s.fat / g.fat) * 100) : 0
+        fat: g && g.fat > 0 ? Math.round((s.fat / g.fat) * 100) : 0,
+        water: g && (g as any).waterMl > 0 ? Math.round((s.waterMl / (g as any).waterMl) * 100) : 0
       }));
     }
-    return map.map((s) => ({ date: s.date, calories: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat }));
+    return map.map((s) => ({ date: s.date, calories: s.calories, protein: s.protein, carbs: s.carbs, fat: s.fat, water: s.waterMl }));
   }, [summaries, goalQ.data, mode]);
 
   const activeLines: LineDef[] = mode === 'all' ? allLines : allLines.filter((l) => l.key === mode);
-  const yUnit = mode === 'all' ? '%' : (mode === 'calories' ? '' : 'g');
-  const goalValue = mode === 'all' ? null : (goalQ.data ? (goalQ.data as Goal)[mode] : null);
-  const goals = goalQ.data as Goal | undefined;
-  const missingAnyGoal = !goals || [goals.calories, goals.protein, goals.carbs, goals.fat].some((v) => !v || v <= 0);
+  const yUnit = mode === 'all' ? '%' : (mode === 'calories' ? '' : (mode === 'water' ? 'ml' : 'g'));
+  const goalValue = mode === 'all' ? null : (goalQ.data ? (mode === 'water' ? (goalQ.data as any).waterMl : (goalQ.data as any)[mode]) : null);
+  const goals = goalQ.data as any | undefined;
+  const missingAnyGoal = !goals || [goals.calories, goals.protein, goals.carbs, goals.fat, goals.waterMl].some((v: number) => !v || v <= 0);
   const missingSelectedGoal = mode !== 'all' && (!goalValue || (goalValue as number) <= 0);
 
   return (

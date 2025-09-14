@@ -9,6 +9,7 @@ export default function Goal() {
   const [protein, setProtein] = useState<string>('');
   const [carbs, setCarbs] = useState<string>('');
   const [fat, setFat] = useState<string>('');
+  const [waterMl, setWaterMl] = useState<string>('');
   const [msg, setMsg] = useState<string | null>(null);
 
   useEffect(() => {
@@ -17,6 +18,8 @@ export default function Goal() {
       setProtein((data.protein || 0).toString());
       setCarbs((data.carbs || 0).toString());
       setFat((data.fat || 0).toString());
+      // @ts-ignore optional on older data
+      setWaterMl(((data as any).waterMl || 0).toString());
     }
   }, [data]);
 
@@ -37,12 +40,14 @@ export default function Goal() {
       calories: parseInt(calories) || 0,
       protein: parseFloat(protein) || 0,
       carbs: parseFloat(carbs) || 0,
-      fat: parseFloat(fat) || 0
+      fat: parseFloat(fat) || 0,
+      // @ts-ignore new field
+      waterMl: parseInt(waterMl) || 0
     };
     mutation.mutate(goal);
   }
 
-  useEffect(() => { setMsg(null); }, [calories, protein, carbs, fat]);
+  useEffect(() => { setMsg(null); }, [calories, protein, carbs, fat, waterMl]);
 
   return (
     <div className="p-4 space-y-4">
@@ -66,6 +71,10 @@ export default function Goal() {
         <label className="block">
           <span className="text-sm font-medium">Fat (g)</span>
           <input type="number" className="w-full border rounded p-2" value={fat} onChange={e=>setFat(e.target.value)} />
+        </label>
+        <label className="block">
+          <span className="text-sm font-medium">Water (ml)</span>
+          <input type="number" className="w-full border rounded p-2" value={waterMl} onChange={e=>setWaterMl(e.target.value)} />
         </label>
   <button disabled={mutation.isPending} onClick={submit} className="w-full bg-emerald-500 hover:bg-emerald-600 text-white rounded py-2 disabled:opacity-50">{mutation.isPending ? 'Saving...' : 'Save Goal'}</button>
         {isLoading && <div className="text-sm">Loading...</div>}

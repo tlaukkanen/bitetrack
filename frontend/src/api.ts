@@ -107,7 +107,7 @@ api.interceptors.response.use(
 
 export interface MealItemDto { id: string; name: string; grams?: number; calories?: number; protein?: number; carbs?: number; fat?: number; confidence?: number; }
 export interface MealDto { id: string; createdAtUtc: string; status: string; photoPath: string; thumbnailPath?: string | null; description?: string | null; calories?: number; protein?: number; carbs?: number; fat?: number; items: MealItemDto[]; errorMessage?: string; }
-export interface DailySummary { date: string; calories: number; protein: number; carbs: number; fat: number; }
+export interface DailySummary { date: string; calories: number; protein: number; carbs: number; fat: number; waterMl: number; }
 
 export async function login(email: string, password: string) {
   const r = await api.post('/auth/login', { email, password });
@@ -121,7 +121,7 @@ export async function getDailySummary(date?: string) {
   const r = await api.get('/profile/daily-summary', { params: { date } });
   return r.data as DailySummary;
 }
-export interface Goal { calories: number; protein: number; carbs: number; fat: number; }
+export interface Goal { calories: number; protein: number; carbs: number; fat: number; waterMl: number; }
 export async function getGoal() {
   const r = await api.get('/profile/goal');
   return r.data as Goal;
@@ -129,6 +129,35 @@ export async function getGoal() {
 export async function saveGoal(goal: Goal) {
   const r = await api.put('/profile/goal', goal);
   return r.data as Goal;
+}
+export interface UserSettings { defaultGlassMl?: number; preferredUnit?: 'ml' | 'oz'; }
+export async function getSettings(): Promise<UserSettings> {
+  const r = await api.get('/profile/settings');
+  return r.data as UserSettings;
+}
+export async function saveSettings(s: UserSettings): Promise<UserSettings> {
+  const r = await api.put('/profile/settings', s);
+  return r.data as UserSettings;
+}
+export interface WaterEntry { id: string; createdAtUtc: string; amountMl: number; unit?: string; }
+export async function getWater(date?: string): Promise<WaterEntry[]> {
+  const r = await api.get('/water', { params: { date } });
+  return r.data as WaterEntry[];
+}
+export async function addWater(amountMl: number, createdAt?: Date, unit: 'ml' | 'oz' = 'ml'): Promise<WaterEntry> {
+  const r = await api.post('/water', { amountMl, createdAtUtc: createdAt?.toISOString(), unit });
+  return r.data as WaterEntry;
+}
+export async function deleteWater(id: string): Promise<void> {
+  await api.delete(`/water/${id}`);
+}
+export async function getWaterEntry(id: string): Promise<WaterEntry> {
+  const r = await api.get(`/water/${id}`);
+  return r.data as WaterEntry;
+}
+export async function updateWater(id: string, req: { amountMl?: number; createdAtUtc?: string; unit?: 'ml' | 'oz' | null }): Promise<WaterEntry> {
+  const r = await api.put(`/water/${id}`, req);
+  return r.data as WaterEntry;
 }
 export async function getMeals(date?: string) {
   const r = await api.get('/meals', { params: { date } });

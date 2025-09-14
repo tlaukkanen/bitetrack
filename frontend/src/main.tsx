@@ -12,14 +12,15 @@ import Insights from './pages/Insights';
 import Profile from './pages/Profile';
 import Promo from './pages/Promo';
 import Pricing from './pages/Pricing';
-import { MdAdd, MdOutlineFoodBank, MdInsights } from 'react-icons/md';
-import { GoGoal } from 'react-icons/go';
+import { MdAdd, MdOutlineFoodBank, MdInsights, MdWaterDrop } from 'react-icons/md';
 import { PiSparkle } from 'react-icons/pi';
 import { initToken, AUTH_EXPIRED_EVENT } from './api';
 import { Header } from './components/Header';
 import { useAuthToken } from './hooks/useAuthToken';
 import { Toaster } from 'react-hot-toast';
 import Coach from './pages/Coach';
+import AddWater from './pages/AddWater';
+import WaterDetail from './pages/WaterDetail';
 
 initToken();
 
@@ -50,21 +51,11 @@ function NavBar() {
     <nav className="fixed bottom-0 left-0 right-0 bg-white border-t z-20 pb-[env(safe-area-inset-bottom)]">
       {/* Top gradient shadow to lift navbar from content */}
       <div aria-hidden="true" className="pointer-events-none absolute -top-3 left-0 right-0 h-3 bg-gradient-to-t from-black/10 to-transparent" />
-  <div className="max-w-md mx-auto grid grid-cols-4 items-end py-1 px-3 relative">
-        {/* Floating Add button (half above navbar) */}
-        <div className="absolute left-1/2 top-0 -translate-x-1/2 -translate-y-1/2">
-          <Link
-            to="/add"
-            aria-label="Add meal"
-            className="w-12 h-12 rounded-full bg-emerald-500 text-white flex items-center justify-center shadow-lg border border-emerald-600 focus:outline-none focus:ring-2 focus:ring-emerald-400 active:scale-95 transition"
-          >
-            <MdAdd size={28} />
-          </Link>
-        </div>
+      <div className="max-w-md mx-auto grid grid-cols-5 items-end py-1 px-3">
         {/* Meals */}
         <button
           onClick={handleToday}
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${isRoot ? 'text-emerald-600' : 'text-gray-600'}`}
+          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${isRoot || location.pathname.startsWith('/meals') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Meals"
         >
           <MdOutlineFoodBank size={22} />
@@ -74,32 +65,45 @@ function NavBar() {
         {/* Coach */}
         <Link
           to="/coach"
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs -ml-4 ${location.pathname.startsWith('/coach') ? 'text-emerald-600' : 'text-gray-600'}`}
+          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/coach') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Coach"
         >
           <PiSparkle size={22} />
           <span className="text-[11px] leading-none">Coach</span>
         </Link>
 
-
         {/* Insights */}
         <Link
           to="/insights"
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs -mr-4 ${location.pathname.startsWith('/insights') ? 'text-emerald-600' : 'text-gray-600'}`}
+          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/insights') ? 'text-emerald-600' : 'text-gray-600'}`}
           aria-label="Insights"
         >
           <MdInsights size={22} />
           <span className="text-[11px] leading-none">Insights</span>
         </Link>
 
-        {/* Goal */}
+        {/* Add Water */}
         <Link
-          to="/goal"
-          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/goal') ? 'text-emerald-600' : 'text-gray-600'}`}
-          aria-label="Goal"
+          to="/water"
+          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname.startsWith('/water') ? 'text-emerald-600' : 'text-gray-600'}`}
+          aria-label="Add Water"
         >
-          <GoGoal size={22} />
-          <span className="text-[11px] leading-none">My Goal</span>
+          <span className="w-9 h-9 rounded-full bg-sky-500 text-white border border-sky-600 flex items-center justify-center shadow-sm hover:brightness-95 active:scale-95 transition">
+            <MdWaterDrop size={18} />
+          </span>
+          <span className="text-[11px] leading-none">Add Water</span>
+        </Link>
+
+        {/* Add Meal */}
+        <Link
+          to="/add"
+          className={`flex flex-col items-center justify-center gap-0.5 py-1 text-xs ${location.pathname === '/add' ? 'text-emerald-600' : 'text-gray-600'}`}
+          aria-label="Add meal"
+        >
+          <span className="w-9 h-9 rounded-full bg-emerald-500 text-white border border-emerald-600 flex items-center justify-center shadow-sm hover:brightness-95 active:scale-95 transition">
+            <MdAdd size={18} />
+          </span>
+          <span className="text-[11px] leading-none">Add Meal</span>
         </Link>
       </div>
     </nav>
@@ -134,6 +138,8 @@ function App() {
             <Route path="/meals/:date" element={<RequireAuth><AuthenticatedFrame><Dashboard /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/add" element={<RequireAuth><AuthenticatedFrame><AddMeal /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/goal" element={<RequireAuth><AuthenticatedFrame><Goal /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/water" element={<RequireAuth><AuthenticatedFrame><AddWater /></AuthenticatedFrame></RequireAuth>} />
+            <Route path="/water/:id" element={<RequireAuth><AuthenticatedFrame><WaterDetail /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/insights" element={<RequireAuth><AuthenticatedFrame><Insights /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/coach" element={<RequireAuth><AuthenticatedFrame><Coach /></AuthenticatedFrame></RequireAuth>} />
             <Route path="/profile" element={<RequireAuth><AuthenticatedFrame><Profile /></AuthenticatedFrame></RequireAuth>} />

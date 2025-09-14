@@ -1,8 +1,9 @@
 import React from 'react';
 import { useQuery } from '@tanstack/react-query';
-import { getDailySummary, getMeals, MealDto, getGoal, Goal } from '../api';
+import { getDailySummary, getMeals, MealDto, getGoal, Goal, getWater, WaterEntry } from '../api';
 import { DailySummaryCard } from '../components/DailySummaryCard';
 import { MealCard } from '../components/MealCard';
+import { WaterCard } from '../components/WaterCard';
 import Skeleton from 'react-loading-skeleton';
 import 'react-loading-skeleton/dist/skeleton.css';
 import { Link, useNavigate, useParams, useLocation } from 'react-router-dom';
@@ -33,7 +34,11 @@ export default function Dashboard() {
     // Poll only for today while processing meals
     refetchInterval: isToday ? 15000 : false
   });
-  const isAnyLoading = isSummaryLoading || isGoalLoading || isMealsLoading;
+  const { data: waters, isLoading: isWaterLoading } = useQuery({
+    queryKey: ['water', dateStr],
+    queryFn: () => getWater(dateStr)
+  });
+  const isAnyLoading = isSummaryLoading || isGoalLoading || isMealsLoading || isWaterLoading;
 
   // Keep URL in sync when selectedDate changes
   React.useEffect(() => {
@@ -184,7 +189,7 @@ export default function Dashboard() {
             </div>
           ))}
         </div>
-      ) : meals && meals.length === 0 ? (
+      ) : (!meals || meals.length === 0) && (!waters || waters.length === 0) ? (
         <div className="py-8 text-center">
           <p className="text-gray-500">No recorded meals yet.</p>
           <Link
@@ -196,8 +201,12 @@ export default function Dashboard() {
         </div>
       ) : (
         <div className="space-y-3">
-          {meals?.map((m: MealDto) => (
-            <MealCard key={m.id} meal={m} />
+          {mergeEntries(meals || [], waters || []).map((it) => (
+            it.type === 'meal' ? (
+              <MealCard key={`meal-${it.item.id}`} meal={it.item as MealDto} />
+            ) : (
+              <WaterCard key={`water-${(it.item as WaterEntry).id}`} entry={it.item as WaterEntry} />
+            )
           ))}
         </div>
       )}
@@ -277,4 +286,15 @@ function formatMonthYear(d: Date) {
 }
 function formatWeekday(d: Date) {
   return d.toLocaleDateString(undefined, { weekday: 'long' });
+}
+
+// Merge meals and water entries sorted by createdAtUtc desc
+function mergeEntries(meals: MealDto[], waters: WaterEntry[]) {
+  type Row = { type: 'meal' | 'water'; item: any; createdAtUtc: string };
+  const rows: Row[] = [
+    ...meals.map(m => ({ type: 'meal' as const, item: m, createdAtUtc: m.createdAtUtc })),
+    ...waters.map(w => ({ type: 'water' as const, item: w, createdAtUtc: w.createdAtUtc }))
+  ];
+  rows.sort((a, b) => (a.createdAtUtc < b.createdAtUtc ? 1 : (a.createdAtUtc > b.createdAtUtc ? -1 : 0)));
+  return rows;
 }

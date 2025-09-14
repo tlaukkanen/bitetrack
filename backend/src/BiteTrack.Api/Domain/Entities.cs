@@ -51,6 +51,26 @@ public class MealFoodItem
     public float? Confidence { get; set; }
 }
 
+public class WaterIntake
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public User? User { get; set; }
+    public DateTime CreatedAtUtc { get; set; } = DateTime.UtcNow;
+    public int AmountMl { get; set; }
+    public string? Unit { get; set; } // e.g., "ml" or "oz"
+}
+
+public class UserSettings
+{
+    public Guid Id { get; set; } = Guid.NewGuid();
+    public Guid UserId { get; set; }
+    public User? User { get; set; }
+    public int? DefaultGlassMl { get; set; }
+    public string? PreferredUnit { get; set; } // "ml" or "oz"
+    public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
+}
+
 public class UserGoal
 {
     public Guid Id { get; set; } = Guid.NewGuid();
@@ -60,7 +80,8 @@ public class UserGoal
     public float Protein { get; set; }
     public float Carbs { get; set; }
     public float Fat { get; set; }
+    public int WaterMl { get; set; } // hydration goal per day
     public DateTime UpdatedAtUtc { get; set; } = DateTime.UtcNow;
 }
 
-public record DailySummary(DateOnly Date, int Calories, float Protein, float Carbs, float Fat);
+public record DailySummary(DateOnly Date, int Calories, float Protein, float Carbs, float Fat, int WaterMl);

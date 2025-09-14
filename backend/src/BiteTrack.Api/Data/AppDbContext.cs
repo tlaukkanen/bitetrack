@@ -9,6 +9,8 @@ public class AppDbContext : DbContext
     public DbSet<Meal> Meals => Set<Meal>();
     public DbSet<MealFoodItem> MealFoodItems => Set<MealFoodItem>();
     public DbSet<UserGoal> UserGoals => Set<UserGoal>();
+    public DbSet<WaterIntake> WaterIntakes => Set<WaterIntake>();
+    public DbSet<UserSettings> UserSettings => Set<UserSettings>();
 
     public AppDbContext(DbContextOptions<AppDbContext> options) : base(options) { }
 
@@ -18,5 +20,7 @@ public class AppDbContext : DbContext
         modelBuilder.Entity<Meal>().HasIndex(m => new { m.UserId, m.CreatedAtUtc });
         modelBuilder.Entity<MealFoodItem>().HasIndex(i => i.MealId);
         modelBuilder.Entity<UserGoal>().HasIndex(g => g.UserId).IsUnique();
+        modelBuilder.Entity<UserSettings>().HasIndex(s => s.UserId).IsUnique();
+        modelBuilder.Entity<WaterIntake>().HasIndex(w => new { w.UserId, w.CreatedAtUtc });
     }
 }

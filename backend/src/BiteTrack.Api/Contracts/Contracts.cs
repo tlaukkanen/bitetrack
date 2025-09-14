@@ -30,7 +30,7 @@ public record MealDto(Guid Id, DateTime CreatedAtUtc, string Status, string Phot
         m.ErrorMessage);
 }
 
-public record GoalRequest(int Calories, float Protein, float Carbs, float Fat);
+public record GoalRequest(int Calories, float Protein, float Carbs, float Fat, int WaterMl);
 
 // Dev-only DTOs
 public record DevUserDto(Guid Id, string Email, string DisplayName, int MealCount, DateTime? LastMealAtUtc);

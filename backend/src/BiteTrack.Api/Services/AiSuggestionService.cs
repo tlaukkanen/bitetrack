@@ -30,8 +30,23 @@ public class AiSuggestionService
             .ToListAsync(ct);
 
         var goal = await _db.UserGoals.FirstOrDefaultAsync(g => g.UserId == userId, ct);
+        var settings = await _db.UserSettings.FirstOrDefaultAsync(s => s.UserId == userId, ct);
+        var water = await _db.WaterIntakes
+            .Where(w => w.UserId == userId && w.CreatedAtUtc >= since)
+            .ToListAsync(ct);
 
         var summary = BuildUserHistorySummary(meals, goal);
+        // Hydration stats
+        int waterDays = water.GroupBy(w => DateOnly.FromDateTime(DateTime.SpecifyKind(w.CreatedAtUtc, DateTimeKind.Utc))).Count();
+        double avgWater = waterDays > 0 ? water.Sum(w => (double)w.AmountMl) / waterDays : 0;
+        if (avgWater > 0 || (goal?.WaterMl ?? 0) > 0 || (settings?.DefaultGlassMl ?? 0) > 0)
+        {
+            var extra = new StringBuilder();
+            extra.Append($"Avg daily water: {Math.Round(avgWater)} ml.");
+            if ((goal?.WaterMl ?? 0) > 0) extra.Append($" Target: {goal!.WaterMl} ml/day.");
+            if ((settings?.DefaultGlassMl ?? 0) > 0) extra.Append($" Default glass: {settings!.DefaultGlassMl} ml.");
+            summary += "\n" + extra.ToString();
+        }
         var goalText = MapGoalKey(goalKey);
 
         var endpoint = _config.GetValue<string>("AOAI_ENDPOINT");
@@ -48,7 +63,7 @@ public class AiSuggestionService
 
         var system = "You are a friendly, practical nutrition coach. Provide clear, actionable guidance based on the user's meal history and stated goal. Focus on small sustainable changes and concrete examples. Keep tone encouraging and specific.";
 
-        var user = $@"User goal: {goalText}
+    var user = $@"User goal: {goalText}
 Known macro goals (if any): calories={goal?.Calories ?? 0}, protein={goal?.Protein ?? 0}, carbs={goal?.Carbs ?? 0}, fat={goal?.Fat ?? 0}
 
 Recent meal history summary (last 30 days, most recent first):

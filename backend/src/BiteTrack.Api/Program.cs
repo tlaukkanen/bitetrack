@@ -152,6 +152,7 @@ app.UseAuthorization();
 app.MapAuthEndpoints();
 app.MapMealsEndpoints();
 app.MapProfileEndpoints();
+app.MapWaterEndpoints();
 app.MapSuggestionsEndpoints();
 app.MapHealthEndpoints();
 app.MapDevEndpoints(); // only maps in Development

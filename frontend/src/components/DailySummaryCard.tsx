@@ -5,7 +5,7 @@ import 'react-loading-skeleton/dist/skeleton.css';
 
 export interface DailySummaryCardProps {
   heading: string;
-  summary: { calories?: number; protein?: number; carbs?: number; fat?: number };
+  summary: { calories?: number; protein?: number; carbs?: number; fat?: number; waterMl?: number };
   goal: Goal | undefined;
   loading?: boolean;
   className?: string;
@@ -16,7 +16,8 @@ export function DailySummaryCard({ heading, summary, goal, loading = false, clas
     { label: 'Calories', value: Math.round(summary.calories || 0), goal: goal?.calories || undefined, unit: '', barClass: 'bg-gray-800' },
     { label: 'Protein', value: Math.round(summary.protein || 0), goal: goal?.protein || undefined, unit: 'g', barClass: 'bg-emerald-500' },
     { label: 'Carbs', value: Math.round(summary.carbs || 0), goal: goal?.carbs || undefined, unit: 'g', barClass: 'bg-yellow-400' },
-    { label: 'Fat', value: Math.round(summary.fat || 0), goal: goal?.fat || undefined, unit: 'g', barClass: 'bg-orange-400' }
+    { label: 'Fat', value: Math.round(summary.fat || 0), goal: goal?.fat || undefined, unit: 'g', barClass: 'bg-orange-400' },
+    ...(((summary.waterMl ?? 0) > 0 || (goal?.waterMl ?? 0) > 0) ? [{ label: 'Water', value: Math.round(summary.waterMl || 0), goal: goal?.waterMl || undefined, unit: ' ml', barClass: 'bg-sky-400' }] : [])
   ];
   return (
     <div className={`w-full max-w-md mb-2 shadow-md rounded-lg bg-white border mx-auto ${className}`}>
