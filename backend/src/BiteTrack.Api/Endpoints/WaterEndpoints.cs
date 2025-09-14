@@ -31,7 +31,22 @@ public static class WaterEndpoints
         {
             var userId = user.GetUserId();
             if (userId == Guid.Empty) return Results.Unauthorized();
-            var when = req.CreatedAtUtc?.ToUniversalTime() ?? DateTime.UtcNow;
+            DateTime when;
+            if (req.CreatedAtUtc.HasValue)
+            {
+                var incoming = req.CreatedAtUtc.Value;
+                when = incoming.Kind switch
+                {
+                    DateTimeKind.Utc => incoming,
+                    DateTimeKind.Local => incoming.ToUniversalTime(),
+                    _ => DateTime.SpecifyKind(incoming, DateTimeKind.Utc) // assume already UTC if unspecified
+                };
+                if (when > DateTime.UtcNow.AddMinutes(5)) when = DateTime.UtcNow;
+            }
+            else
+            {
+                when = DateTime.UtcNow;
+            }
             if (req.AmountMl <= 0) return Results.BadRequest("amountMl must be > 0");
             var entity = new BiteTrack.Api.Domain.WaterIntake
             {
@@ -72,7 +87,18 @@ public static class WaterEndpoints
             var it = await db.WaterIntakes.FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
             if (it is null) return Results.NotFound();
             if (req.AmountMl.HasValue && req.AmountMl.Value > 0) it.AmountMl = req.AmountMl.Value;
-            if (req.CreatedAtUtc.HasValue) it.CreatedAtUtc = req.CreatedAtUtc.Value.ToUniversalTime();
+            if (req.CreatedAtUtc.HasValue)
+            {
+                var incoming = req.CreatedAtUtc.Value;
+                DateTime newUtc = incoming.Kind switch
+                {
+                    DateTimeKind.Utc => incoming,
+                    DateTimeKind.Local => incoming.ToUniversalTime(),
+                    _ => DateTime.SpecifyKind(incoming, DateTimeKind.Utc)
+                };
+                if (newUtc > DateTime.UtcNow.AddMinutes(5)) newUtc = DateTime.UtcNow;
+                it.CreatedAtUtc = newUtc;
+            }
             if (req.Unit is not null) it.Unit = string.IsNullOrWhiteSpace(req.Unit) ? null : req.Unit.Trim();
             await db.SaveChangesAsync();
             return Results.Ok(new { id = it.Id, createdAtUtc = it.CreatedAtUtc, amountMl = it.AmountMl, unit = it.Unit });
