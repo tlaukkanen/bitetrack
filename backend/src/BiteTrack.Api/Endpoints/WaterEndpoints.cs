@@ -22,9 +22,10 @@ public static class WaterEndpoints
             var list = await db.WaterIntakes
                 .Where(w => w.UserId == userId && w.CreatedAtUtc >= start && w.CreatedAtUtc < end)
                 .OrderByDescending(w => w.CreatedAtUtc)
-                .Select(w => new { id = w.Id, createdAtUtc = w.CreatedAtUtc, amountMl = w.AmountMl, unit = w.Unit })
+                .Select(w => new { w.Id, w.CreatedAtUtc, w.AmountMl, w.Unit })
                 .ToListAsync();
-            return Results.Ok(list);
+            var shaped = list.Select(w => new { id = w.Id, createdAtUtc = DateTime.SpecifyKind(w.CreatedAtUtc, DateTimeKind.Utc), amountMl = w.AmountMl, unit = w.Unit });
+            return Results.Ok(shaped);
         });
 
         group.MapPost("/", async (AppDbContext db, System.Security.Claims.ClaimsPrincipal user, [FromBody] WaterRequest req) =>
@@ -57,7 +58,7 @@ public static class WaterEndpoints
             };
             db.WaterIntakes.Add(entity);
             await db.SaveChangesAsync();
-            return Results.Ok(new { id = entity.Id, createdAtUtc = entity.CreatedAtUtc, amountMl = entity.AmountMl, unit = entity.Unit });
+            return Results.Ok(new { id = entity.Id, createdAtUtc = DateTime.SpecifyKind(entity.CreatedAtUtc, DateTimeKind.Utc), amountMl = entity.AmountMl, unit = entity.Unit });
         });
 
         group.MapDelete("/{id:guid}", async (AppDbContext db, System.Security.Claims.ClaimsPrincipal user, Guid id) =>
@@ -77,7 +78,7 @@ public static class WaterEndpoints
             if (userId == Guid.Empty) return Results.Unauthorized();
             var it = await db.WaterIntakes.AsNoTracking().FirstOrDefaultAsync(w => w.Id == id && w.UserId == userId);
             if (it is null) return Results.NotFound();
-            return Results.Ok(new { id = it.Id, createdAtUtc = it.CreatedAtUtc, amountMl = it.AmountMl, unit = it.Unit });
+            return Results.Ok(new { id = it.Id, createdAtUtc = DateTime.SpecifyKind(it.CreatedAtUtc, DateTimeKind.Utc), amountMl = it.AmountMl, unit = it.Unit });
         });
 
         group.MapPut("/{id:guid}", async (AppDbContext db, System.Security.Claims.ClaimsPrincipal user, Guid id, [FromBody] UpdateWaterRequest req) =>
@@ -101,7 +102,7 @@ public static class WaterEndpoints
             }
             if (req.Unit is not null) it.Unit = string.IsNullOrWhiteSpace(req.Unit) ? null : req.Unit.Trim();
             await db.SaveChangesAsync();
-            return Results.Ok(new { id = it.Id, createdAtUtc = it.CreatedAtUtc, amountMl = it.AmountMl, unit = it.Unit });
+            return Results.Ok(new { id = it.Id, createdAtUtc = DateTime.SpecifyKind(it.CreatedAtUtc, DateTimeKind.Utc), amountMl = it.AmountMl, unit = it.Unit });
         });
 
         return app;

@@ -8,12 +8,16 @@ export function WaterCard({ entry }: { entry: WaterEntry }) {
   const time = t.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   return (
     <Link to={`/water/${entry.id}`} className="block p-3 rounded-lg bg-white shadow-sm border">
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-2 text-sky-500">
-          <MdWaterDrop size={20} />
-          <span className="text-xs text-gray-600">{time}</span>
+      <div className="flex gap-3">
+        <div className="w-20 h-6 rounded-md bg-sky-200 overflow-hidden flex-shrink-0 flex items-center justify-center">
+          <MdWaterDrop className="text-sky-500" size={20} />
         </div>
-        <div className="text-sm font-semibold text-gray-900">{entry.amountMl} ml</div>
+        <div className="flex-1 min-w-0 flex flex-col justify-between min-h">
+          <div className="flex justify-between items-baseline text-xs text-gray-600">
+            <span>{time}</span>
+            <span className="font-semibold text-sm text-gray-900">{entry.amountMl} ml</span>
+          </div>
+        </div>
       </div>
     </Link>
   );
