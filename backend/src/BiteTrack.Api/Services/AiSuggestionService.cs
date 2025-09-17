@@ -19,12 +19,12 @@ public class AiSuggestionService
         _config = config;
     }
 
-    public async Task<string> GenerateSuggestionsAsync(Guid userId, string goalKey, CancellationToken ct = default)
+    public async Task<string> GenerateSuggestionsAsync(Guid userId, string goalKey, string? timeframeKey = null, CancellationToken ct = default)
     {
-        var since = DateTime.UtcNow.AddDays(-30);
+        var (since, until, timeframeLabel) = ResolveTimeframe(timeframeKey);
         var meals = await _db.Meals
             .Include(m => m.Items)
-            .Where(m => m.UserId == userId && m.CreatedAtUtc >= since)
+            .Where(m => m.UserId == userId && m.CreatedAtUtc >= since && (until == null || m.CreatedAtUtc < until))
             .OrderByDescending(m => m.CreatedAtUtc)
             .Take(60) // keep prompt bounded
             .ToListAsync(ct);
@@ -32,7 +32,7 @@ public class AiSuggestionService
         var goal = await _db.UserGoals.FirstOrDefaultAsync(g => g.UserId == userId, ct);
         var settings = await _db.UserSettings.FirstOrDefaultAsync(s => s.UserId == userId, ct);
         var water = await _db.WaterIntakes
-            .Where(w => w.UserId == userId && w.CreatedAtUtc >= since)
+            .Where(w => w.UserId == userId && w.CreatedAtUtc >= since && (until == null || w.CreatedAtUtc < until))
             .ToListAsync(ct);
 
         var summary = BuildUserHistorySummary(meals, goal);
@@ -66,7 +66,7 @@ public class AiSuggestionService
     var user = $@"User goal: {goalText}
 Known macro goals (if any): calories={goal?.Calories ?? 0}, protein={goal?.Protein ?? 0}, carbs={goal?.Carbs ?? 0}, fat={goal?.Fat ?? 0}
 
-Recent meal history summary (last 30 days, most recent first):
+Recent meal history summary ({timeframeLabel}, most recent first):
 {summary}
 
 Please respond in concise Markdown with:
@@ -85,6 +85,20 @@ Avoid generic platitudes; be specific and realistic.";
         var completion = await chat.CompleteChatAsync(messages, new ChatCompletionOptions(), ct);
         var content = completion.Value.Content?.FirstOrDefault()?.Text?.Trim();
         return content ?? "";
+    }
+
+    private static (DateTime since, DateTime? until, string label) ResolveTimeframe(string? key)
+    {
+        var now = DateTime.UtcNow;
+        var todayStart = now.Date;
+        return key switch
+        {
+            "last_7_days" => (todayStart.AddDays(-7), null, "last 7 days"),
+            "last_3_days" => (todayStart.AddDays(-3), null, "last 3 days"),
+            "yesterday" => (todayStart.AddDays(-1), todayStart, "yesterday"),
+            "today" => (todayStart, null, "today"),
+            _ => (now.AddDays(-30), null, "last 30 days")
+        };
     }
 
     private static string BuildUserHistorySummary(IEnumerable<BiteTrack.Api.Domain.Meal> meals, BiteTrack.Api.Domain.UserGoal? goal)
@@ -162,6 +176,7 @@ Avoid generic platitudes; be specific and realistic.";
             "anti_inflammation" => "Reduce inflammation by emphasizing omega-3s, colorful produce, and minimizing ultra-processed foods.",
             "reduce_processed" => "Reduce processed foods by swapping to simple whole-food alternatives.",
             "more_plant_based" => "Eat more plant-based meals while keeping protein adequate and enjoyable.",
+            "gain_muscle" => "Gain muscle mass with a slight calorie surplus, high-quality protein distribution across meals, and resistance-training-aligned nutrition.",
             _ => key
         };
     }

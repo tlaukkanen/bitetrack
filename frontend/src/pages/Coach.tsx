@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useMutation } from '@tanstack/react-query';
 import ReactMarkdown from 'react-markdown';
-import { getSuggestions, SuggestionGoalKey } from '../api';
+import { getSuggestions, SuggestionGoalKey, SuggestionTimeframeKey } from '../api';
 import Spinner from '../components/Spinner';
 import AIDisclaimer from '../components/AIDisclaimer';
 
@@ -20,8 +20,18 @@ export default function Coach() {
     } catch {}
     return null;
   });
+  const [timeframe, setTimeframe] = useState<SuggestionTimeframeKey>(() => {
+    try {
+      const v = localStorage.getItem('coachTimeframe') as SuggestionTimeframeKey | null;
+      const allowed: SuggestionTimeframeKey[] = ['last_7_days','last_3_days','yesterday','today'];
+      return (v && (allowed as string[]).includes(v)) ? v : 'last_7_days';
+    } catch {
+      return 'last_7_days';
+    }
+  });
 
   useEffect(() => { try { if (selectedGoal) localStorage.setItem('coachGoal', selectedGoal); } catch {} }, [selectedGoal]);
+  useEffect(() => { try { if (timeframe) localStorage.setItem('coachTimeframe', timeframe); } catch {} }, [timeframe]);
   useEffect(() => {
     try {
       if (selectedGoal) {
@@ -35,11 +45,12 @@ export default function Coach() {
 
   const suggestMutation = useMutation({
     mutationKey: ['suggestions'],
-    mutationFn: async (goal: SuggestionGoalKey) => getSuggestions(goal),
-    onSuccess: (res, goal) => {
+    mutationFn: async (vars: { goal: SuggestionGoalKey; timeframe: SuggestionTimeframeKey }) => getSuggestions(vars.goal, vars.timeframe),
+    onSuccess: (res, vars) => {
       try {
+        const goal = vars.goal;
         if (goal && res && (res as any).content) {
-          localStorage.setItem(`coachSuggestion:${goal}`, (res as any).content);
+          localStorage.setItem(`coachSuggestion:${goal}`,(res as any).content);
           setStoredSuggestion((res as any).content);
         }
       } catch {}
@@ -54,7 +65,29 @@ export default function Coach() {
         <div className="p-3 space-y-3">
           <div>
             <div className="text-sm font-medium text-gray-800">Personalized suggestions</div>
-            <p className="text-xs text-gray-500">Get ideas tailored to your meal history. Choose your focus:</p>
+            <p className="text-xs text-gray-500">Get ideas tailored to your meal history. First, choose timeframe:</p>
+          </div>
+
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
+            {[
+              { k: 'last_7_days', t: 'Last 7 days' },
+              { k: 'last_3_days', t: 'Last 3 days' },
+              { k: 'yesterday', t: 'Yesterday' },
+              { k: 'today', t: 'Today only' },
+            ].map((opt) => (
+              <button
+                key={opt.k}
+                onClick={() => setTimeframe(opt.k as SuggestionTimeframeKey)}
+                className={`text-left px-3 py-2 rounded border text-sm ${timeframe===opt.k ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-300 text-gray-700'}`}
+              >
+                {opt.t}
+              </button>
+            ))}
+          </div>
+
+          <div>
+            <div className="text-sm font-medium text-gray-800">Then pick your focus</div>
+            <p className="text-xs text-gray-500">We’ll generate suggestions based on your meals in the selected timeframe.</p>
           </div>
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
@@ -70,10 +103,11 @@ export default function Coach() {
               { k: 'anti_inflammation', t: 'Reduce inflammation' },
               { k: 'reduce_processed', t: 'Reduce processed foods' },
               { k: 'more_plant_based', t: 'More plant-based meals' },
+              { k: 'gain_muscle', t: 'Gain muscle mass' },
             ].map((opt) => (
               <button
                 key={opt.k}
-                onClick={() => { setSelectedGoal(opt.k as SuggestionGoalKey); suggestMutation.mutate(opt.k as SuggestionGoalKey); }}
+                onClick={() => { setSelectedGoal(opt.k as SuggestionGoalKey); suggestMutation.mutate({ goal: opt.k as SuggestionGoalKey, timeframe }); }}
                 className={`text-left px-3 py-2 rounded border text-sm ${selectedGoal===opt.k ? 'bg-emerald-50 border-emerald-400 text-emerald-700' : 'bg-white border-gray-300 text-gray-700'}`}
               >
                 {opt.t}

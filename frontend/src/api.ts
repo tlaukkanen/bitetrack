@@ -250,10 +250,13 @@ export type SuggestionGoalKey =
   | 'blood_sugar'
   | 'anti_inflammation'
   | 'reduce_processed'
-  | 'more_plant_based';
+  | 'more_plant_based'
+  | 'gain_muscle';
+
+export type SuggestionTimeframeKey = 'last_7_days' | 'last_3_days' | 'yesterday' | 'today';
 
 export interface SuggestionResponse { content: string; }
-export async function getSuggestions(goalKey: SuggestionGoalKey): Promise<SuggestionResponse> {
-  const r = await api.post('/suggestions', { goalKey });
+export async function getSuggestions(goalKey: SuggestionGoalKey, timeframeKey?: SuggestionTimeframeKey): Promise<SuggestionResponse> {
+  const r = await api.post('/suggestions', { goalKey, timeframeKey });
   return r.data as SuggestionResponse;
 }
