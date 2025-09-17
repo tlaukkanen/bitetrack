@@ -39,7 +39,7 @@ public class InMemoryMealAnalysisQueue : IMealAnalysisQueue
 
 public interface IAiMealAnalyzer
 {
-    Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, string? userDescription = null, CancellationToken ct = default);
+    Task<MealAnalysisResult> AnalyzeAsync(string? localPhotoPath, string? userDescription = null, CancellationToken ct = default);
 }
 
 public record MealAnalysisResult(string RawJson, string Description, int Calories, float Protein, float Carbs, float Fat, IEnumerable<MealItemResult> Items);
@@ -49,7 +49,7 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
 {
     private readonly IConfiguration _config;
     public AzureOpenAiMealAnalyzer(IConfiguration config) { _config = config; }
-    public async Task<MealAnalysisResult> AnalyzeAsync(string localPhotoPath, string? userDescription = null, CancellationToken ct = default)
+    public async Task<MealAnalysisResult> AnalyzeAsync(string? localPhotoPath, string? userDescription = null, CancellationToken ct = default)
     {
         var endpoint = _config.GetValue<string>("AOAI_ENDPOINT");
         var apiKey = _config.GetValue<string>("AOAI_API_KEY");
@@ -70,9 +70,12 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
                 );
 
     var chatClient = azureClient.GetChatClient(deployment);
-    using var stream = File.OpenRead(localPhotoPath);
 
-    var systemPrompt = "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. If a user description is provided, use it as context. If not, generate a concise human-friendly description. Return only JSON that matches the provided schema with no extra commentary.";
+    var hasPhoto = !string.IsNullOrWhiteSpace(localPhotoPath) && File.Exists(localPhotoPath!);
+
+    var systemPrompt = hasPhoto
+        ? "You are a nutrition assistant. Analyze the given meal photo and extract estimated calories and macros. If a user description is provided, use it as context. If not, generate a concise human-friendly description. Return only JSON that matches the provided schema with no extra commentary."
+        : "You are a nutrition assistant. Analyze the meal based on the provided textual description only (no image). Estimate calories and macros, identify likely items if possible, and generate a concise human-friendly description. Return only JSON that matches the provided schema with no extra commentary.";
     var userInstruction = "Estimate totals and list recognizable items with grams and per-item macros when possible. Include a short description summarizing the meal.";
 
         var schema = new
@@ -128,17 +131,31 @@ public class AzureOpenAiMealAnalyzer : IAiMealAnalyzer
                 jsonSchemaIsStrict: true)
         };
 
-        // Provide the image inline (Azure GA does not support Files yet).
-        var contentType = ContentTypeHelper.GetContentType(localPhotoPath);
-        var bytes = BinaryData.FromStream(stream);
-        var messages = new List<ChatMessage>
+        var messages = new List<ChatMessage>();
+        messages.Add(new SystemChatMessage(systemPrompt));
+        if (hasPhoto)
         {
-            new SystemChatMessage(systemPrompt),
-            ChatMessage.CreateUserMessage(
-                ChatMessageContentPart.CreateTextPart(userInstruction),
-                ChatMessageContentPart.CreateTextPart(string.IsNullOrWhiteSpace(userDescription) ? "User description: (none). Please generate a concise description." : $"User description: {userDescription}"),
-                ChatMessageContentPart.CreateImagePart(bytes, contentType))
-        };
+            using var stream = File.OpenRead(localPhotoPath!);
+            var contentType = ContentTypeHelper.GetContentType(localPhotoPath!);
+            var bytes = BinaryData.FromStream(stream);
+            messages.Add(
+                ChatMessage.CreateUserMessage(
+                    ChatMessageContentPart.CreateTextPart(userInstruction),
+                    ChatMessageContentPart.CreateTextPart(string.IsNullOrWhiteSpace(userDescription) ? "User description: (none). Please generate a concise description." : $"User description: {userDescription}"),
+                    ChatMessageContentPart.CreateImagePart(bytes, contentType))
+            );
+        }
+        else
+        {
+            var desc = string.IsNullOrWhiteSpace(userDescription)
+                ? "User description: (none). Please infer a reasonable description and items based on typical meals."
+                : $"User description: {userDescription}";
+            messages.Add(
+                ChatMessage.CreateUserMessage(
+                    ChatMessageContentPart.CreateTextPart(userInstruction),
+                    ChatMessageContentPart.CreateTextPart(desc))
+            );
+        }
 
         var completion = await chatClient.CompleteChatAsync(messages, options, ct);
         string content = completion.Value.Content?.FirstOrDefault()?.Text ?? "{}";
@@ -395,7 +412,11 @@ public class MealAnalysisBackgroundService : BackgroundService
                 var storage = scope.ServiceProvider.GetRequiredService<IPhotoStorage>();
                 var meal = await db.Meals.Include(m => m.Items).FirstOrDefaultAsync(m => m.Id == req.MealId, stoppingToken);
                 if (meal == null) continue;
-                var path = storage.ResolvePath(meal.PhotoPath);
+                string? path = null;
+                if (!string.IsNullOrWhiteSpace(meal.PhotoPath))
+                {
+                    path = storage.ResolvePath(meal.PhotoPath);
+                }
                 var result = await analyzer.AnalyzeAsync(path, meal.Description, stoppingToken);
                 meal.Status = MealStatus.Ready;
                 meal.Calories = result.Calories;

@@ -31,6 +31,27 @@ public class MealService
         return meal;
     }
 
+    public async Task<Meal> CreateMealFromDescriptionAsync(Guid userId, string? description, IMealAnalysisQueue queue, DateTime? createdAtUtc = null)
+    {
+        var meal = new Meal
+        {
+            UserId = userId,
+            Status = MealStatus.Processing,
+            PhotoPath = string.Empty,
+            ThumbnailPath = string.Empty,
+            Description = string.IsNullOrWhiteSpace(description) ? null : description.Trim()
+        };
+        if (createdAtUtc.HasValue)
+        {
+            meal.CreatedAtUtc = createdAtUtc.Value;
+            meal.UpdatedAtUtc = createdAtUtc.Value;
+        }
+        _db.Meals.Add(meal);
+        await _db.SaveChangesAsync();
+        await queue.EnqueueAsync(new MealAnalysisRequest(meal.Id));
+        return meal;
+    }
+
     public async Task<List<Meal>> GetMealsAsync(Guid userId, DateOnly date)
     {
         var start = date.ToDateTime(TimeOnly.MinValue, DateTimeKind.Utc);

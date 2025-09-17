@@ -181,6 +181,14 @@ export async function uploadMeal(photo: File, createdAt?: Date, description?: st
   return r.data as MealDto;
 }
 
+export async function createMealWithoutPhoto(createdAt?: Date, description?: string) {
+  const form = new FormData();
+  if (createdAt) form.append('createdAt', createdAt.toISOString());
+  if (description && description.trim()) form.append('description', description.trim());
+  const r = await api.post('/meals', form, { headers: { 'Content-Type': 'multipart/form-data' } });
+  return r.data as MealDto;
+}
+
 export interface UpdateMealRequest { description?: string | null; calories?: number | null; protein?: number | null; carbs?: number | null; fat?: number | null; createdAtUtc?: string | null; }
 export async function updateMeal(id: string, req: UpdateMealRequest) {
   const r = await api.put(`/meals/${id}`, req);

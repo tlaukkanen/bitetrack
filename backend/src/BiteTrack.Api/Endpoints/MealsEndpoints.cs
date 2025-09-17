@@ -23,7 +23,6 @@ public static class MealsEndpoints
             if (!httpRequest.HasFormContentType) return Results.BadRequest("Multipart form expected");
             var form = await httpRequest.ReadFormAsync();
             var file = form.Files.GetFile("photo");
-            if (file == null) return Results.BadRequest("Missing photo file");
             DateTime? createdAtUtc = null;
             var createdAtRaw = form["createdAt"].FirstOrDefault();
             if (!string.IsNullOrWhiteSpace(createdAtRaw))
@@ -35,14 +34,26 @@ public static class MealsEndpoints
                 }
             }
             var description = form["description"].FirstOrDefault();
-            var meal = await meals.CreateMealAsync(userId, file, photoStorage, queue, createdAtUtc);
-            if (!string.IsNullOrWhiteSpace(description))
+            if (file is null)
             {
-                meal.Description = description.Trim();
-                meal.UpdatedAtUtc = DateTime.UtcNow;
-                await meals.SaveChangesAsync();
+                if (string.IsNullOrWhiteSpace(description))
+                {
+                    return Results.BadRequest("Provide either a photo or a description");
+                }
+                var meal = await meals.CreateMealFromDescriptionAsync(userId, description, queue, createdAtUtc);
+                return Results.Ok(MealDto.FromEntity(meal));
             }
-            return Results.Ok(MealDto.FromEntity(meal));
+            else
+            {
+                var meal = await meals.CreateMealAsync(userId, file, photoStorage, queue, createdAtUtc);
+                if (!string.IsNullOrWhiteSpace(description))
+                {
+                    meal.Description = description.Trim();
+                    meal.UpdatedAtUtc = DateTime.UtcNow;
+                    await meals.SaveChangesAsync();
+                }
+                return Results.Ok(MealDto.FromEntity(meal));
+            }
         });
 
         group.MapGet("/", async (MealService meals, System.Security.Claims.ClaimsPrincipal user, DateOnly? date) =>

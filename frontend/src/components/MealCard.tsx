@@ -1,6 +1,7 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { MealDto, fetchMealImage } from '../api';
+import { GiKnifeFork } from 'react-icons/gi';
 
 // Displays a single meal entry with thumbnail, time, status, and macros.
 export function MealCard({ meal }: { meal: MealDto }) {
@@ -77,7 +78,13 @@ function MealThumb({ meal }: { meal: MealDto }) {
       if (url) URL.revokeObjectURL(url);
     };
   }, [meal.id, meal.thumbnailPath]);
-  if (!meal.thumbnailPath) return <div className="w-20 h-20 rounded-2 bg-gray-100 flex items-center justify-center text-[10px] text-gray-400">No photo</div>;
+  if (!meal.thumbnailPath) {
+    return (
+      <div className="w-20 h-20 rounded-md bg-gray-200 flex items-center justify-center text-emerald-600 flex-shrink-0">
+        <GiKnifeFork size={32} aria-label="Meal without photo" />
+      </div>
+    );
+  }
   return (
     <div className="w-20 h-20 rounded-md bg-gray-100 overflow-hidden flex-shrink-0">
       {url ? (
