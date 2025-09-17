@@ -426,7 +426,7 @@ export default function MealDetail() {
           <>Fat: {meal.fat != null ? Math.round(meal.fat) + ' g' : '?'}</>
         )}
       </div>
-      <AIDisclaimer className="mt-2" />
+      
       <div className="mt-3 flex flex-col sm:flex-row gap-3">
         <button
           type="button"
