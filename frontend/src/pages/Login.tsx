@@ -63,9 +63,9 @@ export default function Login() {
           )}
           <input type="password" className="w-full border rounded p-2" placeholder="Password" value={password} onChange={e=>setPassword(e.target.value)}/>
           <button onClick={submit} disabled={isSubmitting} className="w-full bg-emerald-500 hover:bg-emerald-600 disabled:bg-emerald-300 text-white rounded py-2">
-            {isSubmitting ? 'Processing...' : 'Submit'}
+            {isSubmitting ? 'Processing...' : (mode === 'login' ? 'Login' : 'Register')}
           </button>
-          <button onClick={()=>setMode(mode==='login'?'register':'login')} className="w-full text-sm text-emerald-600 hover:text-emerald-700">{mode==='login'?'Create a new account':'Already a member? Log In'}</button>
+          <button onClick={()=>setMode(mode==='login'?'register':'login')} className="w-full text-sm text-emerald-600 hover:text-emerald-700">{mode==='login'?'Create a new account':'Already a member? Login'}</button>
           {msg && <div className="text-sm">{msg}</div>}
         </div>
       </div>
