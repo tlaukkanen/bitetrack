@@ -29,13 +29,13 @@ export default function Promo() {
             <div className="flex items-center justify-center">
               <div className="relative w-full max-w-sm">
                 <img
-                  src="/photos/mobile_meal_summary_v2-portrait.png"
+                  src="/photos/mobile_meal_summary_v3-portrait.png"
                   alt="BiteTrack daily summary mockup"
                   className="w-60"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
                 <img
-                  src="/photos/mobile_meal_details_v2-portrait.png"
+                  src="/photos/mobile_meal_details_v3-portrait.png"
                   alt="BiteTrack meal details mockup"
                   className="  absolute -right-1 top-10 w-48 md:w-48 lg:w-48 rotate-6"
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
@@ -77,17 +77,50 @@ export default function Promo() {
         </div>
       </section>
 
-      <section id="insights" className="bg-gray-50">
+      <section id="water" className="bg-gray-50">
         <div className="max-w-4xl mx-auto px-4 py-10 md:py-14">
           <div className="grid md:grid-cols-2 gap-10 items-center">
             <div>
-              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Insights that drive progress</h2>
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Effortless water tracking</h2>
               <p className="mt-3 text-gray-700 text-base md:text-lg">
-                Spot patterns, understand trends, and see how small changes add up. Weekly summaries and macro breakdowns
-                make it easy to reflect and adjust.
+                Quickly log your water intake and keep hydrated with simple, fast entries. Stay on track with daily
+                goals and clear progress visuals.
               </p>
             </div>
             <div className="flex items-center justify-center">
+              {/* Outer relative wrapper to allow overlays outside the cropped image area */}
+              <div className="relative w-full max-w-sm">
+                {/* Cropped image container */}
+                <div className="relative md:h-[428px] h-[428px] overflow-hidden bg-white">
+                  <img
+                    src="/photos/mobile_add_water_v3-portrait.png"
+                    alt="BiteTrack add water view"
+                    className="absolute inset-0 w-full h-full object-cover object-top rotate-3 scale-[0.8] origin-bottom transform"
+                    onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
+                  />
+                  {/* Fake bottom crop with white box and gray upper border */}
+                  <div aria-hidden="true" className="absolute bottom-0 left-0 right-0 h-4 bg-white border-t border-gray-400 z-20" />
+                  {/* Upward shadow centered above the line, fading toward edges */}
+                  <div
+                    aria-hidden="true"
+                    className="pointer-events-none absolute left-0 right-0 h-4 z-30"
+                    style={{
+                      bottom: 16,
+                      background: 'radial-gradient(closest-side at 50% 100%, rgba(0,0,0,0.35), rgba(0,0,0,0) 70%)'
+                    }}
+                  />
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section id="insights" className="bg-gray-50">
+        <div className="max-w-4xl mx-auto px-4 py-10 md:py-14">
+          <div className="grid md:grid-cols-2 gap-10 items-center">
+            {/* On wide screens, show image on the left and text on the right */}
+            <div className="order-2 md:order-1 flex items-center justify-center">
               <div className="relative w-full max-w-sm md:h-[428px] h-[428px] overflow-hidden">
                 <img
                   src="/photos/mobile_insights-portrait.png"
@@ -96,6 +129,13 @@ export default function Promo() {
                   onError={(e) => { (e.currentTarget as HTMLImageElement).style.display = 'none'; }}
                 />
               </div>
+            </div>
+            <div className="order-1 md:order-2">
+              <h2 className="text-xl md:text-2xl font-bold text-gray-900">Insights that drive progress</h2>
+              <p className="mt-3 text-gray-700 text-base md:text-lg">
+                Spot patterns, understand trends, and see how small changes add up. Weekly summaries and macro breakdowns
+                make it easy to reflect and adjust.
+              </p>
             </div>
           </div>
         </div>
