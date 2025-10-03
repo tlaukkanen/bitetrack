@@ -91,7 +91,7 @@ export default function Promo() {
               {/* Outer relative wrapper to allow overlays outside the cropped image area */}
               <div className="relative w-full max-w-sm">
                 {/* Cropped image container */}
-                <div className="relative md:h-[428px] h-[428px] overflow-hidden bg-white">
+                <div className="relative md:h-[428px] h-[428px] overflow-hidden">
                   <img
                     src="/photos/mobile_add_water_v3-portrait.png"
                     alt="BiteTrack add water view"
@@ -194,3 +194,4 @@ function Feature({ title, desc }: { title: string; desc: string }) {
     </div>
   );
 }
+
